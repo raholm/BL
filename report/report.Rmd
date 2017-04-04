@@ -1,0 +1,73 @@
+---
+title: "Bayesian Learning"
+subtitle: Lab 1
+author: "Emil K Svensson and Rasmus Holm"
+date: '`r Sys.Date()`'
+output:
+    pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Question 1
+
+```{r}
+n <- 20
+s <- 14
+f <- n - s
+
+alpha_prior <- 2
+beta_prior <- 2
+```
+
+## a
+
+```{r}
+drawSamples <- function(nDraws, alpha, beta) {
+    rbeta(nDraws, shape1=alpha, shape2=beta)
+}
+
+nDraws <- 10000
+alpha <- alpha_prior + s
+beta <- beta_prior + f
+
+samples <- drawSamples(nDraws, alpha, beta)
+
+true_mean <- alpha / (alpha + beta)
+estimated_mean <- mean(samples)
+
+true_sd <- sqrt((alpha * beta) / ((alpha + beta)^2 * (alpha + beta + 1)))
+estimated_sd <- sd(samples)
+```
+
+```{r}
+hist(samples, freq=FALSE, xlab="theta", main="Histogram of Samples", xlim=c(0, 1))
+
+abline(v=true_mean, col="blue", lwd=2)
+abline(v=true_mean + true_sd, col="blue", lwd=2)
+abline(v=true_mean - true_sd, col="blue", lwd=2)
+
+abline(v=estimated_mean, col="red", lwd=2, lty=2)
+abline(v=estimated_mean + estimated_sd, col="red", lwd=2, lty=2)
+abline(v=estimated_mean - estimated_sd, col="red", lwd=2, lty=2)
+```
+
+## b
+
+## c
+
+# Question 2
+
+## a
+
+## b
+
+## c
+
+# Question 3
+
+## a
+
+## b

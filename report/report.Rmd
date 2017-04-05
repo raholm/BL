@@ -33,6 +33,7 @@ nDraws <- 10000
 alpha <- alpha_prior + s
 beta <- beta_prior + f
 
+set.seed(123)
 samples <- drawSamples(nDraws, alpha, beta)
 
 true_mean <- alpha / (alpha + beta)
@@ -41,9 +42,11 @@ estimated_mean <- mean(samples)
 true_sd <- sqrt((alpha * beta) / ((alpha + beta)^2 * (alpha + beta + 1)))
 estimated_sd <- sd(samples)
 
-betamean <-sapply(1:10000, FUN = function(X) mean(drawSamples(nDraws = X,alpha = alpha , beta = beta)) )
+set.seed(123)
+betamean <- sapply(1:10000, FUN = function(X) mean(drawSamples(nDraws = X, alpha = alpha , beta = beta)))
 
-betasd <- sapply(1:10000, FUN = function(X) sd(drawSamples(nDraws = X,alpha = alpha , beta = beta)) )
+set.seed(123)
+betasd <- sapply(1:10000, FUN = function(X) sd(drawSamples(nDraws = X, alpha = alpha , beta = beta)))
 
 plot(x = 1:10000, y = betamean, type = "l")
 abline(h = true_mean, col = "blue", lwd = 2)
@@ -88,19 +91,19 @@ $Pr(\theta < 0.4 |y) =$ `r true_04`
 
 ```{r}
 log_odds <- function(theta){
-  log( theta / (1 - theta) )
+  log(theta / (1 - theta))
 }
 
-sample_odds <-log_odds(samples)
+sample_odds <- log_odds(samples)
 
 hist(sample_odds, freq = FALSE)
 lines(density(sample_odds), col = "blue")
-
-
-plot(cumsum(sort(sample_odds)), type = "l")
+# plot(cumsum(sort(sample_odds)), type = "l")
 ```
 
 A thing of beauty.
+
+\newpage
 
 # Question 2
 
@@ -114,6 +117,7 @@ n <- length(sek)
 mu <- 3.5
 tausq <- sum((log(sek)- mu)^2) / n
 
+set.seed(123)
 chi_samples <- rinvchisq(10000, df = n, scale = tausq)
 ```
 
@@ -129,7 +133,7 @@ ys <- invchisq_pdf(xs, 10, tausq)
 ```
 
 ```{r}
-hist(chi_samples, breaks = 100, freq=FALSE)
+hist(chi_samples, breaks = 100, freq=FALSE, xlim=c(0, 2))
 lines(xs, ys, col="red", lwd=2)
 ```
 
@@ -137,7 +141,7 @@ lines(xs, ys, col="red", lwd=2)
 
 ```{r}
 gini <- function(sigma){
-    2 * pnorm(sigma/sqrt(2), mean = 0 , sd = 1) - 1
+    2 * pnorm(sigma / sqrt(2), mean = 0 , sd = 1) - 1
 }
 
 gini_samples <- gini(sqrt(chi_samples))
@@ -146,12 +150,10 @@ hist(gini_samples, breaks = 50, freq = FALSE, ylim = c(0,8))
 lines(density(gini_samples), col = "red", lwd = 2)
 ```
 
-
-
 ## c
 
 ```{r}
-gini_cred<- quantile(gini_samples, probs = c(0.025, 1 - 0.025))
+gini_cred <- quantile(gini_samples, probs = c(0.025, 1 - 0.025))
 ```
 
 ```{r}
@@ -165,15 +167,20 @@ while(sum(dense_gini_cdf) > 0.95){
     index_gini <- index_gini[-1]
 }
 
-gini_HPD<- c(min(dense_gini$x[index_gini]),max(dense_gini$x[index_gini]))
+lower <- min(dense_gini$x[index_gini])
+upper <- max(dense_gini$x[index_gini])
+
+gini_HPD <- c(lower, upper)
 ```
 
 ```{r}
-hist(gini_samples, breaks = 50, freq = FALSE, ylim = c(0,8))
+hist(gini_samples, breaks = 50, freq = FALSE, ylim = c(0, 8))
 lines(density(gini_samples), col = "red", lwd = 2)
 abline(v = gini_HPD, col = "blue", lwd = 2)
 abline(v = gini_cred, col = "orange", lwd = 2, lty = 2)
 ```
+
+\newpage
 
 # Question 3
 
@@ -189,9 +196,9 @@ sample_exp <- seq(0.01, 10, 0.01)
 prior_exp <- dexp(sample_exp, rate = 1)
 y <- c(-2.44, 2.14, 2.54, 1.83, 2.02, 2.33, -2.79, 2.23, 2.07, 2.02)
 
-sample_mises <- t(sapply(y, function(X) vonMises(y = X, K = sample_exp, mu = 2.39) ))
+sample_mises <- t(sapply(y, function(X) vonMises(y = X, K = sample_exp, mu = 2.39)))
 
-mises_like <- apply(sample_mises, MARGIN = 2, FUN = prod )
+mises_like <- apply(sample_mises, MARGIN = 2, FUN = prod)
 
 post_mises <- mises_like * prior_exp
 post_mises <- post_mises / sum(post_mises)

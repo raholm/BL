@@ -52,14 +52,14 @@ plot(x = 1:10000, y = betamean, type = "l")
 abline(h = true_mean, col = "blue", lwd = 2)
 ```
 
-The sample mean for the beta distribution seem to be converging at the beta distributions expected mean here represented by the blue line.
+The posterior mean for the beta distribution seem to be converging at the beta distributions expected mean for the beta distribution. (represented by the red line in the graph above).
 
 ```{r}
 plot(x = 1:10000, y = betasd, type = "l")
 abline(h = true_sd, col = "red", lwd = 2)
 ```
 
-The sample standard deviation also converges at the expected standard deviation as expected.
+The posterior standard deviation also converges at the expected standard deviation as expected.
 
 ```{r}
 hist(samples, freq=FALSE, xlab="theta", main="Histogram of Samples", xlim=c(0, 1))
@@ -81,9 +81,10 @@ Here we can see the expected mean and standard deviations for 10000 samples and 
 est_04 <- sum(samples < 0.4) / length(samples)
 true_04 <- pbeta(0.4, shape1 = alpha, shape2 = beta)
 ```
+The posterior probability for theta beeing below 0.4 is calculated as the share of values under 0.4.
 
 $Pr(\theta < 0.4 |y) \approx$ `r est_04`
-The true value being
+And the true value being 
 $Pr(\theta < 0.4 |y) =$ `r true_04`
 
 ## c
@@ -137,6 +138,8 @@ hist(chi_samples, breaks = 100, freq=FALSE, xlim=c(0, 2))
 lines(xs, ys, col="red", lwd=2)
 ```
 
+The red line representing the theoretical distribution. I looks like a realy nice fit to the posterior in the histogram.
+
 ## b
 
 ```{r}
@@ -180,6 +183,12 @@ abline(v = gini_HPD, col = "blue", lwd = 2)
 abline(v = gini_cred, col = "orange", lwd = 2, lty = 2)
 ```
 
+The credible-interval is represented by the dashed orange line and contains with 95 % probability the parameter G lies within this interval. So we can say it is more probable that the income-distribution is equal than inequal.
+
+For the Highest Posterior Density (HPD) Intervall we are with 95 probability certain that the most probable G-value. 
+
+The difference between the two intervalls is that the HPD is more shifted to the left since the distributions is positively skewed. 
+
 \newpage
 
 # Question 3
@@ -205,6 +214,10 @@ post_mises <- post_mises / sum(post_mises)
 
 plot(sample_exp, post_mises, type="l")
 ```
+
+So what we do here is that we create a grid of K-values from 0.01 to 10 and use these as the randomly drawn values from the exponential so that we get a probability for each y given all of these K values. To then compute the likelihood we can simply take the product of all of the 10 probabilities for the lambda. 
+
+These sequenced Ks are then also used in the prior but as points of density in the exponential distribution.  
 
 ## b
 

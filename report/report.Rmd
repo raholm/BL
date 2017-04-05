@@ -49,14 +49,14 @@ plot(x = 1:10000, y = betamean, type = "l")
 abline(h = true_mean, col = "blue", lwd = 2)
 ```
 
-The sample mean for the beta distribution seem to be converging at the beta distributions expected mean here represented by the blue line. 
+The sample mean for the beta distribution seem to be converging at the beta distributions expected mean here represented by the blue line.
 
 ```{r}
 plot(x = 1:10000, y = betasd, type = "l")
 abline(h = true_sd, col = "red", lwd = 2)
 ```
 
-The sample standard deviation also converges at the expected standard deviation as expected.  
+The sample standard deviation also converges at the expected standard deviation as expected.
 
 ```{r}
 hist(samples, freq=FALSE, xlab="theta", main="Histogram of Samples", xlim=c(0, 1))
@@ -75,13 +75,13 @@ Here we can see the expected mean and standard deviations for 10000 samples and 
 ## b
 
 ```{r}
-est_04<- sum(samples < 0.4) / length(samples)
+est_04 <- sum(samples < 0.4) / length(samples)
 true_04 <- pbeta(0.4, shape1 = alpha, shape2 = beta)
-
 ```
+
 $Pr(\theta < 0.4 |y) \approx$ `r est_04`
-The true value beeing  
-$Pr(\theta < 0.4 |y) = $`r true_04`
+The true value being
+$Pr(\theta < 0.4 |y) =$ `r true_04`
 
 ## c
 
@@ -89,10 +89,9 @@ $Pr(\theta < 0.4 |y) = $`r true_04`
 ```{r}
 log_odds <- function(theta){
   log( theta / (1 - theta) )
-} 
+}
 
 sample_odds <-log_odds(samples)
-
 
 hist(sample_odds, freq = FALSE)
 lines(density(sample_odds), col = "blue")
@@ -101,7 +100,7 @@ lines(density(sample_odds), col = "blue")
 plot(cumsum(sort(sample_odds)), type = "l")
 ```
 
-A thing of beauty. 
+A thing of beauty.
 
 # Question 2
 
@@ -112,31 +111,39 @@ library(geoR)
 sek <- c(14, 25, 45, 25, 30, 33, 19, 50, 34 ,67)
 
 n <- length(sek)
-mu <- 3.5 
-tausq <- sum( (log(sek)- mu)^2 ) / n
+mu <- 3.5
+tausq <- sum((log(sek)- mu)^2) / n
 
 chi_samples <- rinvchisq(10000, df = n, scale = tausq)
-
-hist(chi_samples,  breaks = 100 ,freq = FALSE)
-
-
 ```
 
+```{r}
+invchisq_pdf <- function(x, df, scale) {
+    factor1 <- (scale * df / 2)^(df / 2) / gamma(df / 2)
+    factor2 <- exp(-(df * scale) / (2 * x)) / x^(1 + df / 2)
+    factor1 * factor2
+}
+
+xs <- seq(0.01, 2, 0.01)
+ys <- invchisq_pdf(xs, 10, tausq)
+```
+
+```{r}
+hist(chi_samples, breaks = 100, freq=FALSE)
+lines(xs, ys, col="red", lwd=2)
+```
 
 ## b
 
 ```{r}
 gini <- function(sigma){
-  2 * pnorm(sigma/sqrt(2), mean = 0 , sd = 1) - 1 
+    2 * pnorm(sigma/sqrt(2), mean = 0 , sd = 1) - 1
 }
 
 gini_samples <- gini(sqrt(chi_samples))
 
 hist(gini_samples, breaks = 50, freq = FALSE, ylim = c(0,8))
 lines(density(gini_samples), col = "red", lwd = 2)
-
-
-
 ```
 
 
@@ -145,7 +152,6 @@ lines(density(gini_samples), col = "red", lwd = 2)
 
 ```{r}
 gini_cred<- quantile(gini_samples, probs = c(0.025, 1 - 0.025))
-
 ```
 
 ```{r}
@@ -155,17 +161,13 @@ index_gini <- order(dense_gini_cdf)
 dense_gini_cdf <- dense_gini_cdf[index_gini]
 
 while(sum(dense_gini_cdf) > 0.95){
-  dense_gini_cdf <- dense_gini_cdf[-1]
-  index_gini <- index_gini[-1]
+    dense_gini_cdf <- dense_gini_cdf[-1]
+    index_gini <- index_gini[-1]
 }
-
-library(coda)
-
-HPDinterval(as.mcmc(gini_samples), prob = 0.95)
-
 
 gini_HPD<- c(min(dense_gini$x[index_gini]),max(dense_gini$x[index_gini]))
 ```
+
 ```{r}
 hist(gini_samples, breaks = 50, freq = FALSE, ylim = c(0,8))
 lines(density(gini_samples), col = "red", lwd = 2)
@@ -173,19 +175,18 @@ abline(v = gini_HPD, col = "blue", lwd = 2)
 abline(v = gini_cred, col = "orange", lwd = 2, lty = 2)
 ```
 
-
 # Question 3
 
 ## a
 
 ```{r}
 vonMises <- function(y,K,mu){
-  exp(K * cos(y - mu)) /(2 * pi * besselI(K, nu = 0))
+    exp(K * cos(y - mu)) /(2 * pi * besselI(K, nu = 0))
 }
 
-sample_exp <- seq(0.01,5,0.01)
+sample_exp <- seq(0.01, 10, 0.01)
 
-prior_exp <- dexp(sample_exp, rate = 1 )
+prior_exp <- dexp(sample_exp, rate = 1)
 y <- c(-2.44, 2.14, 2.54, 1.83, 2.02, 2.33, -2.79, 2.23, 2.07, 2.02)
 
 sample_mises <- t(sapply(y, function(X) vonMises(y = X, K = sample_exp, mu = 2.39) ))
@@ -193,11 +194,13 @@ sample_mises <- t(sapply(y, function(X) vonMises(y = X, K = sample_exp, mu = 2.3
 mises_like <- apply(sample_mises, MARGIN = 2, FUN = prod )
 
 post_mises <- mises_like * prior_exp
-# post_mises <- post_mises / sum(post_mises)
+post_mises <- post_mises / sum(post_mises)
 
-hist(post_mises, breaks = 50, freq = FALSE)
-lines(density(post_mises), col = "green", lwd = 2)
+plot(sample_exp, post_mises, type="l")
 ```
 
-
 ## b
+
+```{r}
+sample_exp[which.max(post_mises)]
+```

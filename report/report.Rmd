@@ -191,7 +191,7 @@ abline(v = gini_cred, col = "orange", lwd = 2, lty = 2)
 
 The credible-interval is represented by the dashed orange line and the parameter G lies within this interval with 0.95 probability. So we can say it is more probable that the income-distribution is equal than inequal.
 
-For the Highest Posterior Density (HPD) interval we are with 0.95 probability certain that the most probable G value is within this interval.
+For the Highest Posterior Density (HPD) interval we contain 95 % of the most probable G values.
 
 The main difference between the two intervals is that the HPD is more shifted to the left since the distributions is positively skewed.
 

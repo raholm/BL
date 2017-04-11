@@ -25,7 +25,6 @@ where $\alpha_{0} = \beta_{0} = 2$. The sample we get consists of 14 successes o
 \theta | y \sim \text{Beta}(\alpha_{0} + 14, \beta_{0} + 6).
 \end{equation*}
 
-
 ```{r}
 n <- 20
 s <- 14
@@ -138,11 +137,12 @@ ys <- invchisq_pdf(xs, 10, tausq)
 ```
 
 ```{r}
-hist(chi_samples, breaks = 100, freq=FALSE, xlim=c(0, 2))
+hist(chi_samples, breaks = 100, freq=FALSE, xlim=c(0, 2),
+     main="Histogram of Inv-Chisq", xlab="Value")
 lines(xs, ys, col="red", lwd=2)
 ```
 
-The red line representing the theoretical distribution. I looks like a realy nice fit to the posterior in the histogram.
+The red line represents the theoretical distribution and it looks like a really nice fit to the posterior in the histogram.
 
 ## b
 
@@ -154,9 +154,10 @@ gini <- function(sigma){
 gini_samples <- gini(sqrt(chi_samples))
 
 hist(gini_samples, breaks = 50, freq = FALSE,
-     ylim = c(0,8), xlim=c(0, 1))
-lines(density(gini_samples), col = "red", lwd = 2)
+     ylim = c(0,8), xlim=c(0, 1), main="Histogram of Gini Coefficient", xlab="Value")
 ```
+
+The histogram above shows the posterior distribution of the Gini coefficient.
 
 ## c
 
@@ -188,11 +189,11 @@ abline(v = gini_HPD, col = "blue", lwd = 2)
 abline(v = gini_cred, col = "orange", lwd = 2, lty = 2)
 ```
 
-The credible-interval is represented by the dashed orange line and contains with 95 % probability the parameter G lies within this interval. So we can say it is more probable that the income-distribution is equal than inequal.
+The credible-interval is represented by the dashed orange line and the parameter G lies within this interval with 0.95 probability. So we can say it is more probable that the income-distribution is equal than inequal.
 
-For the Highest Posterior Density (HPD) interval we are with 95 probability certain that the most probable G-value.
+For the Highest Posterior Density (HPD) interval we are with 0.95 probability certain that the most probable G value is within this interval.
 
-The difference between the two intervalls is that the HPD is more shifted to the left since the distributions is positively skewed.
+The main difference between the two intervals is that the HPD is more shifted to the left since the distributions is positively skewed.
 
 \newpage
 

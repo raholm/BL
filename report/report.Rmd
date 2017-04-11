@@ -43,26 +43,35 @@ true_sd <- sqrt((alpha * beta) / ((alpha + beta)^2 * (alpha + beta + 1)))
 estimated_sd <- sd(samples)
 
 set.seed(123)
-betamean <- sapply(1:10000, FUN = function(X) mean(drawSamples(nDraws = X, alpha = alpha , beta = beta)))
+betamean <- sapply(1:nDraws, FUN = function(X) {
+    mean(drawSamples(nDraws = X, alpha = alpha , beta = beta))
+})
 
 set.seed(123)
-betasd <- sapply(1:10000, FUN = function(X) sd(drawSamples(nDraws = X, alpha = alpha , beta = beta)))
+betasd <- sapply(1:nDraws, FUN = function(X) {
+    sd(drawSamples(nDraws = X, alpha = alpha , beta = beta))
+})
+```
 
-plot(x = 1:10000, y = betamean, type = "l")
-abline(h = true_mean, col = "blue", lwd = 2)
+```{r}
+plot(x = 1:nDraws, y = betamean, type = "l",
+     xlab="# of Samples", ylab="Expected Value")
+abline(h = true_mean, col = "red", lwd = 2)
 ```
 
 The sample mean for the beta distribution seem to be converging at the beta distributions expected mean here represented by the blue line.
 
 ```{r}
-plot(x = 1:10000, y = betasd, type = "l")
+plot(x = 1:nDraws, y = betasd, type = "l",
+     xlab="# of Samples", ylab="Expected Value")
 abline(h = true_sd, col = "red", lwd = 2)
 ```
 
 The sample standard deviation also converges at the expected standard deviation as expected.
 
 ```{r}
-hist(samples, freq=FALSE, xlab="theta", main="Histogram of Samples", xlim=c(0, 1))
+hist(samples, freq=FALSE, breaks=50,
+     xlab="theta", main="Histogram of Samples", xlim=c(0, 1))
 
 abline(v=true_mean, col="blue", lwd=2)
 abline(v=true_mean + true_sd, col="blue", lwd=2)
@@ -96,9 +105,8 @@ log_odds <- function(theta){
 
 sample_odds <- log_odds(samples)
 
-hist(sample_odds, freq = FALSE)
+hist(sample_odds, breaks=50, freq = FALSE)
 lines(density(sample_odds), col = "blue")
-# plot(cumsum(sort(sample_odds)), type = "l")
 ```
 
 A thing of beauty.
@@ -118,7 +126,7 @@ mu <- 3.5
 tausq <- sum((log(sek)- mu)^2) / n
 
 set.seed(123)
-chi_samples <- rinvchisq(10000, df = n, scale = tausq)
+chi_samples <- rinvchisq(nDraws, df = n, scale = tausq)
 ```
 
 ```{r}
@@ -146,7 +154,8 @@ gini <- function(sigma){
 
 gini_samples <- gini(sqrt(chi_samples))
 
-hist(gini_samples, breaks = 50, freq = FALSE, ylim = c(0,8))
+hist(gini_samples, breaks = 50, freq = FALSE,
+     ylim = c(0,8), xlim=c(0, 1))
 lines(density(gini_samples), col = "red", lwd = 2)
 ```
 
@@ -203,7 +212,7 @@ mises_like <- apply(sample_mises, MARGIN = 2, FUN = prod)
 post_mises <- mises_like * prior_exp
 post_mises <- post_mises / sum(post_mises)
 
-plot(sample_exp, post_mises, type="l")
+plot(sample_exp, post_mises, type="l", ylab="Probability", xlab="Value")
 ```
 
 ## b

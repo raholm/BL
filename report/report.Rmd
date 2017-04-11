@@ -13,6 +13,19 @@ knitr::opts_chunk$set(echo = TRUE)
 
 # Question 1
 
+In this assignment we are given data coming from a Bernoulli distribution with unknown parameter $\theta$ and we use the conjugate prior
+
+\begin{equation*}
+\theta \sim \text{Beta}(\alpha_{0}, \beta_{0})
+\end{equation*}
+
+where $\alpha_{0} = \beta_{0} = 2$. The sample we get consists of 14 successes out of 20 trials which gives us the posterior distribution
+
+\begin{equation*}
+\theta | y \sim \text{Beta}(\alpha_{0} + 14, \beta_{0} + 6).
+\end{equation*}
+
+
 ```{r}
 n <- 20
 s <- 14
@@ -23,6 +36,8 @@ beta_prior <- 2
 ```
 
 ## a
+
+Here we are sampling from the posterior distribution to verify that as the number of samples increases, the mean and standard deviation converges to the true values. In this particular case the true mean is $\alpha / ( \alpha + \beta ) = 2 / 3$ and standard deviation is $\sqrt{( \alpha \beta ) / ( (\alpha + \beta)^2 ( \alpha + \beta + 1 ) )} = \sqrt{ 2 / 225 }$.
 
 ```{r}
 drawSamples <- function(nDraws, alpha, beta) {
@@ -55,34 +70,19 @@ betasd <- sapply(1:nDraws, FUN = function(X) {
 
 ```{r}
 plot(x = 1:nDraws, y = betamean, type = "l",
-     xlab="# of Samples", ylab="Expected Value")
+     xlab="# of Samples", ylab="Sample Mean")
 abline(h = true_mean, col = "red", lwd = 2)
 ```
 
-The posterior mean for the beta distribution seem to be converging at the beta distributions expected mean for the beta distribution. (represented by the red line in the graph above).
+The plot above shows how the sample mean changes with the number of drawn samples. The red line is the true mean and we can see that as the sample increases it converges to the true mean.
 
 ```{r}
 plot(x = 1:nDraws, y = betasd, type = "l",
-     xlab="# of Samples", ylab="Expected Value")
+     xlab="# of Samples", ylab="Sample Standard Deviation")
 abline(h = true_sd, col = "red", lwd = 2)
 ```
 
-The posterior standard deviation also converges at the expected standard deviation as expected.
-
-```{r}
-hist(samples, freq=FALSE, breaks=50,
-     xlab="theta", main="Histogram of Samples", xlim=c(0, 1))
-
-abline(v=true_mean, col="blue", lwd=2)
-abline(v=true_mean + true_sd, col="blue", lwd=2)
-abline(v=true_mean - true_sd, col="blue", lwd=2)
-
-abline(v=estimated_mean, col="red", lwd=2, lty=2)
-abline(v=estimated_mean + estimated_sd, col="red", lwd=2, lty=2)
-abline(v=estimated_mean - estimated_sd, col="red", lwd=2, lty=2)
-```
-
-Here we can see the expected mean and standard deviations for 10000 samples and they seem to be very close to each other.
+Similar, the plot above shows how the standard deviation from the samples changes with the number of drawn samples. The red line shows the true standard deviation and we can see that the sample standard deviation converges to it.
 
 ## b
 
@@ -90,14 +90,12 @@ Here we can see the expected mean and standard deviations for 10000 samples and 
 est_04 <- sum(samples < 0.4) / length(samples)
 true_04 <- pbeta(0.4, shape1 = alpha, shape2 = beta)
 ```
-The posterior probability for theta beeing below 0.4 is calculated as the share of values under 0.4.
 
-$Pr(\theta < 0.4 |y) \approx$ `r est_04`
-And the true value being 
-$Pr(\theta < 0.4 |y) =$ `r true_04`
+The posterior probability for theta being below 0.4 is calculated as the share of values under 0.4 in our drawn samples. We drew 10000 samples and got $\text{Pr}( \theta < 0.4 | y ) \approx$ `r est_04` while the true value is $\text{Pr}( \theta < 0.4 | y ) =$ `r true_04` which is fairly close.
 
 ## c
 
+We can also use the samples to get the distribution of a function of those samples. In this case we take $\text{logit}( \theta ) = \log( \theta / ( 1 - \theta ) )$ and get the histogram below.
 
 ```{r}
 log_odds <- function(theta){
@@ -106,11 +104,9 @@ log_odds <- function(theta){
 
 sample_odds <- log_odds(samples)
 
-hist(sample_odds, breaks=50, freq = FALSE)
+hist(sample_odds, breaks=50, freq = FALSE, main="Histogram of Log Odds", xlab="Log Odds")
 lines(density(sample_odds), col = "blue")
 ```
-
-A thing of beauty.
 
 \newpage
 
@@ -194,13 +190,27 @@ abline(v = gini_cred, col = "orange", lwd = 2, lty = 2)
 
 The credible-interval is represented by the dashed orange line and contains with 95 % probability the parameter G lies within this interval. So we can say it is more probable that the income-distribution is equal than inequal.
 
-For the Highest Posterior Density (HPD) Intervall we are with 95 probability certain that the most probable G-value. 
+For the Highest Posterior Density (HPD) interval we are with 95 probability certain that the most probable G-value.
 
-The difference between the two intervalls is that the HPD is more shifted to the left since the distributions is positively skewed. 
+The difference between the two intervalls is that the HPD is more shifted to the left since the distributions is positively skewed.
 
 \newpage
 
 # Question 3
+
+For this exercise we have been given the likelihood
+
+\begin{equation*}
+p(y | \mu, \kappa) = \frac{ \exp \left[ \kappa \cos(y - \mu) \right] }{2 \pi I_{0}(\kappa)}, -\pi \leq y \leq \pi
+\end{equation*}
+
+where $I_{0}(\kappa)$ is the modified Bessel function of the first kind of order zero. We have also been given that $\kappa \sim \text{Exponential}( \lambda = 1 )$. We want to approximate the marginal posterior distribution $p(\kappa | \mu, y)$ and we assume that $\mu = 2.39$. In order to this we generate samples of $\kappa$ that we assume comes from the Exponential distribution, in our case 1000 values equally spaces between 0.01 to 10. We can then compute
+
+\begin{equation*}
+p(\kappa | \mu, y) \propto p(y | \mu, \kappa) p(\kappa)
+\end{equation*}
+
+and get an approximation of the marginal posterior distribution. This method usually goes by the name of \textit{grid approximation} and is appropriate for low number of parameters.
 
 ## a
 
@@ -209,27 +219,22 @@ vonMises <- function(y,K,mu){
     exp(K * cos(y - mu)) /(2 * pi * besselI(K, nu = 0))
 }
 
-sample_exp <- seq(0.01, 10, 0.01)
-
-prior_exp <- dexp(sample_exp, rate = 1)
 y <- c(-2.44, 2.14, 2.54, 1.83, 2.02, 2.33, -2.79, 2.23, 2.07, 2.02)
 
+sample_exp <- seq(0.01, 10, 0.01)
 sample_mises <- t(sapply(y, function(X) vonMises(y = X, K = sample_exp, mu = 2.39)))
 
-mises_like <- apply(sample_mises, MARGIN = 2, FUN = prod)
+prior <- dexp(sample_exp, rate = 1)
+likelihood <- apply(sample_mises, MARGIN = 2, FUN = prod)
 
-post_mises <- mises_like * prior_exp
-post_mises <- post_mises / sum(post_mises)
+unnorm_posterior <- likelihood * prior
+posterior <- unnorm_posterior / sum(unnorm_posterior)
 
-plot(sample_exp, post_mises, type="l", ylab="Probability", xlab="Value")
+plot(sample_exp, posterior, type="l", ylab="Density", xlab="k")
 ```
 
-So what we do here is that we create a grid of K-values from 0.01 to 10 and use these as the randomly drawn values from the exponential so that we get a probability for each y given all of these K values. To then compute the likelihood we can simply take the product of all of the 10 probabilities for the lambda. 
-
-These sequenced Ks are then also used in the prior but as points of density in the exponential distribution.  
+We can see from the distribution above that the most density is located between 0.5 and 4.
 
 ## b
 
-```{r}
-sample_exp[which.max(post_mises)]
-```
+The posterior mode of $\kappa$ is approximately `r sample_exp[which.max(posterior)]` given by our approximation of the distribution.

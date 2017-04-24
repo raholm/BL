@@ -1,6 +1,6 @@
 ---
 title: "Bayesian Learning"
-subtitle: Lab 1
+subtitle: Lab 2
 author: "Emil K Svensson and Rasmus Holm"
 date: '`r Sys.Date()`'
 output:

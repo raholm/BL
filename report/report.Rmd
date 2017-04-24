@@ -4,7 +4,9 @@ subtitle: Lab 2
 author: "Emil K Svensson and Rasmus Holm"
 date: '`r Sys.Date()`'
 output:
-    pdf_document
+    pdf_document:
+        includes:
+            in_header: styles.sty
 ---
 
 ```{r setup, include=FALSE}
@@ -12,3 +14,71 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 # Question 1
+
+```{r}
+temp <- read.table("../data/TempLinkoping2016.txt", header=T)
+
+mod <- lm(temp ~ time + I(time^2), data=temp)
+summary(mod)
+```
+
+```{r}
+plot(temp$time, temp$temp)
+lines(sort(temp$time), fitted(mod)[order(temp$time)], col='red', type='l')
+```
+
+Prior
+
+\begin{align*}
+\sigma^2 &\sim \text{Inv -- } \chi^2(\nu_{0}, \sigma_{0}^{2}) \\
+\beta | \sigma^2 &\sim \text{N}(\mu_{0}, \sigma^2 \Omega_{0}^{-1})
+\end{align*}
+
+Likelihood
+
+\begin{align*}
+\textbf{y}| \beta, \sigma^2, \textbf{X} &\sim \text{N}(\textbf{X} \beta, \sigma^2 I_{n})
+\end{align*}
+
+Posterior
+
+\begin{align*}
+\sigma^2 | \textbf{y} &\sim \text{Inv -- } \chi^2(\nu_{n}, \sigma_{n}^{2}) \\
+\beta | \sigma^2, \textbf{y} &\sim \text{N}(\mu_{n}, \sigma^2 \Omega_{n}^{-1}) \\
+\intertext{where}
+\mu_{n} &= (\textbf{X}^\intercal \textbf{X} + \Omega_0)^{-1} (\textbf{X}^\intercal \textbf{X} \hat{\beta} + \Omega_{0} \mu_{0}) \\
+\Omega_{n} &= \textbf{X}^\intercal \textbf{X} + \Omega_{0} \\
+\nu_{n} &= \nu_{0} + n \\
+\nu_{n} \sigma^{2}_{n} &= \nu_{0} \sigma^2_0 + (\textbf{y}^\intercal \textbf{y} + \mu^{\intercal}_{0} \Omega_0 \mu_0 - \mu^{\intercal}_{n} \Omega_n \mu_n)
+\end{align*}
+
+
+
+## a)
+```{r}
+mu0 <- 0
+omega0 <- 0
+nu0 <- 0
+sigmasq0 <- 0
+
+
+```
+
+
+## b)
+
+## c)
+
+## d)
+
+## e)
+
+\newpage
+
+# Question 2
+
+## a)
+
+## b)
+
+## c)

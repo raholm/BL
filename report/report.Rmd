@@ -56,10 +56,10 @@ Posterior
 
 ## a)
 ```{r}
-mu0 <- 0
-omega0 <- 0
-nu0 <- 0
-sigmasq0 <- 0
+mu0 <- c(-5,0,0)
+omega0 <- diag(3) * 0.95
+nu0 <- 1
+sigmasq0 <- 50
 
 
 ```
@@ -67,17 +67,130 @@ sigmasq0 <- 0
 
 ## b)
 
+```{r}
+library(geoR)
+library(MASS)
+set.seed(12345)
+
+time <- data.frame(rep(1,nrow(temp)), temp$time, temp$time^2)
+
+priorest <- function(time){ 
+  
+sigmasq  <- rinvchisq( n = 1, df = nu0, scale = sigmasq0)
+betacoef <- mvrnorm(n = 1, mu = mu0, Sigma = sigmasq * solve(omega0) )
+
+as.matrix(time) %*% betacoef
+
+}
+
+
+plot(temp$time, temp$temp)
+
+for (i in 1:20){ 
+lines(sort(temp$time), priorest(time = time)[order(temp$time)], col='red', type='l')
+}
+```
+
+
+
 ## c)
+
+```{r}
+
+
+paramest <- function(temp,time){
+  
+  XX<- t(time) %*% time
+  betahat <- solve(XX) %*% t(time) %*% temp 
+   
+  mun <- solve( XX + omega0 ) %*% (XX%*%betahat + omega0 %*% mu0)
+  
+  omegaN <- XX + omega0 
+  
+  vn <- nu0 + nrow(time)
+  
+  vnsigma2n <- nu0 * sigmasq0 + 
+    (t(temp) %*% temp + t(mu0) %*% omega0 %*% mu0 - 
+       t(mun) %*% omegaN %*% mun ) 
+  
+  sigma2n <- vnsigma2n / vn
+  
+    
+  sigmasq  <- rinvchisq( n = 1, df = vn, scale = sigma2n)
+  betacoef <- mvrnorm(n = 1, mu = mun, Sigma = as.numeric(sigmasq) *        solve(omegaN) )
+  
+                        
+  list(beta = betacoef, sigmasq = sigmasq)
+  
+  
+} 
+
+
+postest <- function(temp, time){
+ 
+  params<- paramest(temp,time) 
+  time %*% params$beta
+  
+}
+
+
+
+
+
+
+plot(temp$time, temp$temp)
+lines(sort(temp$time), postest(time = as.matrix(time), matrix(temp$temp,ncol = 1))[order(temp$time)], col='red', type='l')
+
+
+ests <- sapply(1:1000, FUN = function(x) postest(time = as.matrix(time), matrix(temp$temp,ncol = 1))  )
+
+#rowMeans(ests)
+
+credInt <- apply(ests, MARGIN = 1, quantile, probs = c(0.05,0.95))
+
+plot(temp$time, temp$temp)
+lines(sort(temp$time), rowMeans(ests)[order(temp$time)], col='red', type='l')
+lines(sort(temp$time), credInt[1,][order(temp$time)], col='blue', type='l')
+lines(sort(temp$time), credInt[2,][order(temp$time)], col='blue', type='l')
+
+
+```
+
 
 ## d)
 
+```{r}
+
+
+manycoefs <- sapply(1:1000, FUN = function(x) paramest(time = as.matrix(time), matrix(temp$temp,ncol = 1) )$beta)
+
+hot <- mean( - manycoefs[2,]/ (2 * manycoefs[3,]) ) 
+
+hot * 366
+#July 27, 2016 (Wed)
+```
+
+
 ## e)
+
+Set $\mu_0$ to zeros and a high $\Omega_0$ that expresses a high degree of certainty in our prior. 
+
 
 \newpage
 
 # Question 2
 
 ## a)
+
+```{r}
+women <- read.table("../data/WomenWorks.txt", header = TRUE)
+
+glmModel <- glm(Work ~ 0 + ., data = women, family = binomial)
+
+glmModel
+summary(glmModel)
+```
+
 
 ## b)
 

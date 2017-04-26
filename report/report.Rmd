@@ -19,7 +19,6 @@ knitr::opts_chunk$set(echo = TRUE)
 temp <- read.table("../data/TempLinkoping2016.txt", header=T)
 
 mod <- lm(temp ~ time + I(time^2), data=temp)
-summary(mod)
 ```
 
 ```{r}
@@ -52,145 +51,146 @@ Posterior
 \nu_{n} \sigma^{2}_{n} &= \nu_{0} \sigma^2_0 + (\textbf{y}^\intercal \textbf{y} + \mu^{\intercal}_{0} \Omega_0 \mu_0 - \mu^{\intercal}_{n} \Omega_n \mu_n)
 \end{align*}
 
-
-
 ## a)
+
 ```{r}
-mu0 <- c(-5,0,0)
-omega0 <- diag(3) * 0.95
+mu0 <- c(0, 0, 0)
+omega0 <- diag(3) * 0.5
 nu0 <- 1
-sigmasq0 <- 50
+sigmasq0 <- 20
 
-
+hyperparams <- list(mu=mu0, omega=omega0, nu=nu0, sigmasq=sigmasq0)
 ```
-
 
 ## b)
 
 ```{r}
 library(geoR)
 library(MASS)
-set.seed(12345)
 
 time <- data.frame(rep(1,nrow(temp)), temp$time, temp$time^2)
+mtime <- as.matrix(time)
+mtemp <- matrix(temp$temp, ncol = 1)
 
-priorest <- function(time){ 
-  
-sigmasq  <- rinvchisq( n = 1, df = nu0, scale = sigmasq0)
-betacoef <- mvrnorm(n = 1, mu = mu0, Sigma = sigmasq * solve(omega0) )
+prior_estimate <- function(data, params){
+    sigmasq  <- rinvchisq( n = 1, df = params$nu, scale = params$sigmasq)
+    betacoef <- mvrnorm(n = 1, mu = params$mu, Sigma = sigmasq * solve(params$omega) )
 
-as.matrix(time) %*% betacoef
-
-}
-
-
-plot(temp$time, temp$temp)
-
-for (i in 1:20){ 
-lines(sort(temp$time), priorest(time = time)[order(temp$time)], col='red', type='l')
+    data %*% betacoef
 }
 ```
 
+```{r}
+plot(temp$time, temp$temp)
 
+x <- sort(temp$time)
+
+set.seed(12345)
+
+for (i in 1:20){
+    y <- prior_estimate(mtime, hyperparams)[order(temp$time)]
+    lines(x, y, col='red', type='l')
+}
+```
+
+```{r}
+set.seed(12345)
+
+x <- sort(temp$time)
+y <- rowMeans(sapply(1:1000, function(x) prior_estimate(mtime, hyperparams)[order(temp$time)]))
+
+plot(temp$time, temp$temp)
+lines(x, y, col='red', type='l')
+```
 
 ## c)
 
 ```{r}
+posterior_param_sample <- function(X, y, hyperparams){
+    XX <- t(X) %*% X
+    betahat <- solve(XX) %*% t(X) %*% y
+    mun <- solve(XX + hyperparams$omega) %*%
+        (XX %*% betahat + hyperparams$omega %*% hyperparams$mu)
+    omegan <- XX + hyperparams$omega
+    nun <- hyperparams$nu + nrow(X)
+    nunsigmasqn <- hyperparams$nu * hyperparams$sigmasq +
+        (t(y) %*% y +
+         t(hyperparams$mu) %*% hyperparams$omega %*% hyperparams$mu -
+         t(mun) %*% omegan %*% mun )
+    sigmasqn <- nunsigmasqn / nun
 
+    sigmasq  <- rinvchisq(n = 1, df=nun, scale=sigmasqn)
+    beta <- mvrnorm(n = 1, mu = mun, Sigma = as.numeric(sigmasq) * solve(omegan))
 
-paramest <- function(temp,time){
-  
-  XX<- t(time) %*% time
-  betahat <- solve(XX) %*% t(time) %*% temp 
-   
-  mun <- solve( XX + omega0 ) %*% (XX%*%betahat + omega0 %*% mu0)
-  
-  omegaN <- XX + omega0 
-  
-  vn <- nu0 + nrow(time)
-  
-  vnsigma2n <- nu0 * sigmasq0 + 
-    (t(temp) %*% temp + t(mu0) %*% omega0 %*% mu0 - 
-       t(mun) %*% omegaN %*% mun ) 
-  
-  sigma2n <- vnsigma2n / vn
-  
-    
-  sigmasq  <- rinvchisq( n = 1, df = vn, scale = sigma2n)
-  betacoef <- mvrnorm(n = 1, mu = mun, Sigma = as.numeric(sigmasq) *        solve(omegaN) )
-  
-                        
-  list(beta = betacoef, sigmasq = sigmasq)
-  
-  
-} 
-
-
-postest <- function(temp, time){
- 
-  params<- paramest(temp,time) 
-  time %*% params$beta
-  
+    list(beta = beta, sigmasq = sigmasq)
 }
 
-
-
-
-
-
-plot(temp$time, temp$temp)
-lines(sort(temp$time), postest(time = as.matrix(time), matrix(temp$temp,ncol = 1))[order(temp$time)], col='red', type='l')
-
-
-ests <- sapply(1:1000, FUN = function(x) postest(time = as.matrix(time), matrix(temp$temp,ncol = 1))  )
-
-#rowMeans(ests)
-
-credInt <- apply(ests, MARGIN = 1, quantile, probs = c(0.05,0.95))
-
-plot(temp$time, temp$temp)
-lines(sort(temp$time), rowMeans(ests)[order(temp$time)], col='red', type='l')
-lines(sort(temp$time), credInt[1,][order(temp$time)], col='blue', type='l')
-lines(sort(temp$time), credInt[2,][order(temp$time)], col='blue', type='l')
-
-
+posterior_estimate <- function(X, y, params){
+    ests <- posterior_param_sample(X, y, params)
+    X %*% ests$beta
+}
 ```
 
+```{r}
+plot(temp$time, temp$temp)
+
+set.seed(12345)
+
+idx <- order(temp$time)
+x <- temp$time[idx]
+y <- posterior_estimate(mtime, mtemp, hyperparams)[idx]
+
+lines(x, y, col='red', type='l')
+```
+
+```{r}
+set.seed(12345)
+
+ests <- sapply(1:1000, FUN = function(x) posterior_estimate(mtime, mtemp, hyperparams))
+cred_interval <- apply(ests, MARGIN = 1, quantile, probs = c(0.05, 0.95))
+
+idx <- order(temp$time)
+x <- temp$time[idx]
+y1 <- rowMeans(ests)[idx]
+y2 <- cred_interval[1,][idx]
+y3 <- cred_interval[2,][idx]
+
+plot(temp$time, temp$temp)
+lines(x, y1, col='red', type='l')
+lines(x, y2, col='blue', type='l')
+lines(x, y3, col='blue', type='l')
+```
 
 ## d)
 
 ```{r}
+set.seed(12345)
 
-
-manycoefs <- sapply(1:1000, FUN = function(x) paramest(time = as.matrix(time), matrix(temp$temp,ncol = 1) )$beta)
-
-hot <- mean( - manycoefs[2,]/ (2 * manycoefs[3,]) ) 
-
-hot * 366
-#July 27, 2016 (Wed)
+betas <- sapply(1:1000, FUN = function(x) posterior_param_sample(mtime, mtemp, hyperparams)$beta)
+hot <- mean(-betas[2,] / (2 * betas[3,]))
+hot * 366 # July 27, 2016 (Wed)
 ```
 
 
 ## e)
-
-Set $\mu_0$ to zeros and a high $\Omega_0$ that expresses a high degree of certainty in our prior. 
-
+Set $\mu_0$ to zeros and a high $\Omega_0$ that expresses a high degree of certainty in our prior.
 
 \newpage
 
 # Question 2
 
+```{r}
+women <- read.table("../data/WomenWorks.txt", header = TRUE)
+```
+
 ## a)
 
 ```{r}
-women <- read.table("../data/WomenWorks.txt", header = TRUE)
-
 glmModel <- glm(Work ~ 0 + ., data = women, family = binomial)
 
 glmModel
 summary(glmModel)
 ```
-
 
 ## b)
 

@@ -197,5 +197,64 @@ summary(glmModel)
 ```
 
 ## b)
+```{r}
+library(mvtnorm)
+
+prior <- function(mean, sigma, beta){
+  
+  dmvnorm(beta, mean = mean, sigma = sigma, log = TRUE)
+  
+}
+
+
+tau <- 10
+mu  <- rep(0,8)
+I   <- diag(8)
+
+
+likelihood <- function(X,Y,beta){
+  
+  probabilities <- (Y * (t(X) %*% beta)) - log(1 + exp(t(X) %*% beta))
+  loglike<- sum(probabilities)
+    if (abs(loglike) == Inf) loglike = -20000;
+  # Likelihood is not finite, stear the optimizer away from here!
+  loglike
+
+}
+
+likelihood(t(womenX), womenY, beta = rep(0,8))
+
+
+posterior <- function(beta,X,Y, mean, sigma){
+
+  -(likelihood(X,Y,beta) + prior(mean, sigma, beta))
+  
+}
+
+womenX <- as.matrix(women[,2:ncol(women)])
+womenY <- as.matrix(women[,1])
+
+optpost <- optim( par = matrix(rep(0.1,8), ncol = 1) , 
+                  fn = posterior, method = "BFGS", hessian = TRUE ,
+                  X = t(womenX), Y = womenY, 
+                  mean = mu, sigma = I * tau^2  )
+
+```
+
+
+```{r}
+
+samppost <- function(mu,sigma){
+  
+  rmvnorm(1, mean = mu, sigma = sigma)
+}
+
+
+samplefrompost <- sapply(1:1000, FUN = function(x) samppost(mu = optpost$par, sigma = -solve(optpost$hessian)))
+dim(samplefrompost)
+
+cred_intervals <- apply(samplefrompost, 1, quantile, prob=c(0.025, 0.975))
+```
+
 
 ## c)

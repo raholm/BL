@@ -59,7 +59,7 @@ Posterior
 
 ```{r}
 mu0 <- c(0, 0, 0)
-omega0 <- diag(3) * 0.5
+omega0 <- diag(3) * 0.05
 nu0 <- 1
 sigmasq0 <- 20
 
@@ -76,7 +76,7 @@ time <- data.frame(rep(1,nrow(temp)), temp$time, temp$time^2)
 mtime <- as.matrix(time)
 mtemp <- matrix(temp$temp, ncol = 1)
 
-prior_estimate <- function(data, params){
+prior_estimate <- function(data, params) {
     sigmasq  <- rinvchisq( n = 1, df = params$nu, scale = params$sigmasq)
     betacoef <- mvrnorm(n = 1, mu = params$mu, Sigma = sigmasq * solve(params$omega) )
 

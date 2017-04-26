@@ -22,8 +22,12 @@ mod <- lm(temp ~ time + I(time^2), data=temp)
 ```
 
 ```{r}
+idx <- order(temp$time)
+x <- temp$time[idx]
+y <- fitted(mod)[idx]
+
 plot(temp$time, temp$temp)
-lines(sort(temp$time), fitted(mod)[order(temp$time)], col='red', type='l')
+lines(x, y, col='red', type='l')
 ```
 
 Prior
@@ -125,9 +129,9 @@ posterior_param_sample <- function(X, y, hyperparams){
     list(beta = beta, sigmasq = sigmasq)
 }
 
-posterior_estimate <- function(X, y, params){
-    ests <- posterior_param_sample(X, y, params)
-    X %*% ests$beta
+posterior_estimate <- function(X, y, hyperparams){
+    sample <- posterior_param_sample(X, y, hyperparams)
+    X %*% sample$beta
 }
 ```
 

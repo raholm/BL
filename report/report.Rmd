@@ -216,7 +216,7 @@ loglikelihood <- function(beta, X, Y){
 }
 
 logposterior <- function(beta, X, Y, mean, sigma){
-    loglikelihood(beta, X, Y) + logprior(beta, mean, sigma)
+   loglikelihood(beta, X, Y) + logprior(beta, mean, sigma)
 }
 
 tau <- 10
@@ -226,7 +226,7 @@ sigma <- tau^2 * diag(8)
 womenX <- as.matrix(women[,2:ncol(women)])
 womenY <- as.matrix(women[,1])
 
-optpost <- optim(par = matrix(rep(0.1,8), ncol = 1),
+optpost <- optim(par = matrix(rep(0, 8), ncol = 1),
                  fn = logposterior, method = "BFGS", hessian = TRUE,
                  X = t(womenX), Y = womenY,
                  mean = mu, sigma = sigma,

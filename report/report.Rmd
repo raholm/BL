@@ -112,15 +112,21 @@ lines(x, y, col='red', type='l')
 ```{r}
 posterior_param_sample <- function(X, y, hyperparams){
     XX <- t(X) %*% X
+
     betahat <- solve(XX) %*% t(X) %*% y
+
     mun <- solve(XX + hyperparams$omega) %*%
         (XX %*% betahat + hyperparams$omega %*% hyperparams$mu)
+
     omegan <- XX + hyperparams$omega
+
     nun <- hyperparams$nu + nrow(X)
+
     nunsigmasqn <- hyperparams$nu * hyperparams$sigmasq +
         (t(y) %*% y +
          t(hyperparams$mu) %*% hyperparams$omega %*% hyperparams$mu -
          t(mun) %*% omegan %*% mun )
+
     sigmasqn <- nunsigmasqn / nun
 
     sigmasq  <- rinvchisq(n = 1, df=nun, scale=sigmasqn)
@@ -234,40 +240,36 @@ optpost <- optim(par = matrix(rep(0, 8), ncol = 1),
 ```
 
 ```{r}
-posterior_sample <- function(mu, sigma){
-    rmvnorm(1, mean = mu, sigma = sigma)
+posterior_beta_sample <- function(n, mu, sigma){
+    rmvnorm(n, mean = mu, sigma = sigma)
 }
 
 mu <- optpost$par
 sigma <- -solve(optpost$hessian)
 
-samples <- sapply(1:1000, FUN = function(x) posterior_sample(mu=mu, sigma=sigma))
-cred_intervals <- apply(samples, 1, quantile, prob=c(0.025, 0.975))
+set.seed(12345)
+beta_samples <- posterior_beta_sample(n=1000, mu=mu, sigma=sigma)
+cred_intervals <- apply(beta_samples, 2, quantile, prob=c(0.025, 0.975))
+```
+
+```{r}
 cred_intervals
 ```
 
 ## c)
 
-
-
-
 ```{r}
-estbeta  <- exp(optpost$par[,1])
-
-
-likelihood <- function(X,beta){
-  
-  probabilities <- exp( t(X) %*% beta) / (1 + exp( t(X) %*% beta) )
-  probabilities
-
+posterior_predictive_sample <- function(X, beta){
+    linear_prediction <- t(X) %*% beta
+    probability <- exp(linear_prediction) / (1 + exp(linear_prediction))
+    rbinom(n=1, size=1, prob=probability)
 }
 
-likes <- likelihood(X = c(1,10,8,10,10^2,40,1,1), beta = samples) 
-predictions <- rbinom(length(likes),1,prob = likes )
-
-
-hist(predictions, freq = FALSE)
-
+x <- matrix(c(1, 10, 8, 10, (10 / 10)^2, 40, 1, 1), ncol=1)
+prediction_samples <- apply(beta_samples, 1,  function(beta) posterior_predictive_sample(x, beta))
 ```
 
-
+```{r}
+counts <- table(prediction_samples)
+barplot(counts / sum(counts), ylim=c(0, 1))
+```

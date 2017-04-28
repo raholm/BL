@@ -65,6 +65,10 @@ sigmasq0 <- 20
 hyperparams <- list(mu=mu0, omega=omega0, nu=nu0, sigmasq=sigmasq0)
 ```
 
+Since we both are novice in weather-prediction we have no real prior knowledge we set all mu0 to 0. Our omega0 is set to a diagonal matrix with 0.05 in the trace to express that we are not certain at all in these mus. 
+
+The same goes for our priors for sigma, with nu0 ($\tau_0$) we express that we are very uncertain of our set prior for sigmasq.  
+
 ## b)
 
 ```{r}
@@ -96,15 +100,9 @@ for (i in 1:20){
 }
 ```
 
-```{r}
-set.seed(12345)
+Given our prior the curves are very flexible and go all over the plot which is about what we expected when setting such vauge priors. 
 
-x <- sort(temp$time)
-y <- rowMeans(sapply(1:1000, function(x) prior_estimate(mtime, hyperparams)[order(temp$time)]))
-
-plot(temp$time, temp$temp)
-lines(x, y, col='red', type='l')
-```
+Since we say that we don't really know anything about the weather-forecast we are satitisfied with this. 
 
 ## c)
 
@@ -152,9 +150,9 @@ y <- posterior_estimate(mtime, mtemp, hyperparams)[idx]
 lines(x, y, col='red', type='l')
 ```
 
-```{r}
+```{r, message = FALSE }
 set.seed(12345)
-
+library(fields)
 ests <- sapply(1:1000, FUN = function(x) posterior_estimate(mtime, mtemp, hyperparams))
 cred_interval <- apply(ests, MARGIN = 1, quantile, probs = c(0.05, 0.95))
 
@@ -164,7 +162,7 @@ y1 <- rowMeans(ests)[idx]
 y2 <- cred_interval[1,][idx]
 y3 <- cred_interval[2,][idx]
 
-plot(temp$time, temp$temp)
+plot(temp$time, temp$temp, pch = 20 )
 lines(x, y1, col='red', type='l')
 lines(x, y2, col='blue', type='l')
 lines(x, y3, col='blue', type='l')
@@ -182,7 +180,9 @@ hot * 366 # July 27, 2016 (Wed)
 
 
 ## e)
-Set $\mu_0$ to zeros and a high $\Omega_0$ that expresses a high degree of certainty in our prior.
+
+Set $\mu_0$ to zeros for all of them. For $\Omega_0$ the first three elements in the diagonal are set low and the later ones set high. The prior now express that we are uncertain of what the first three mus are and that we are certain that the other five terms are the mus specified (i.e zero, not needed).  
+
 
 \newpage
 
@@ -196,7 +196,6 @@ women <- read.table("../data/WomenWorks.txt", header = TRUE)
 
 ```{r}
 glmModel <- glm(Work ~ 0 + ., data = women, family = binomial)
-summary(glmModel)
 ```
 
 ## b)
@@ -252,7 +251,7 @@ cred_intervals <- apply(beta_samples, 2, quantile, prob=c(0.025, 0.975))
 colnames(cred_intervals) <- colnames(women)[-1]
 ```
 
-The 95\% credibility intervals below show that the intercept, husband income, transformed years in work experience, and the number of children older than 6 years are statistical insignificant, i.e. 0 (no impact) is contained in the intervals. This indicates that it may be better to remove those variables from the model.
+The 95\% credibility intervals below show that the intercept, husband income, transformed years in work experience, and the number of children older than 6 years are statistical insignificant, i.e. 0 (no impact) is contained in the intervals. NsmallChilds credibility interval is not crossing 0 and therefor considerd significant and important for the model.
 
 ```{r}
 cred_intervals

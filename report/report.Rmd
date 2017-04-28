@@ -17,7 +17,6 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ```{r}
 temp <- read.table("../data/TempLinkoping2016.txt", header=T)
-
 mod <- lm(temp ~ time + I(time^2), data=temp)
 ```
 
@@ -277,4 +276,4 @@ counts <- table(prediction_samples)
 barplot(counts / sum(counts), ylim=c(0, 1))
 ```
 
-The barplot above indicates that it is much more probable that given the data the woman is not working under our model which is surprising.
+The barplot above indicates that it is much more probable that given the data the woman is not working under our model.

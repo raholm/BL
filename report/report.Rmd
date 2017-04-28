@@ -247,3 +247,27 @@ cred_intervals
 ```
 
 ## c)
+
+
+
+
+```{r}
+estbeta  <- exp(optpost$par[,1])
+
+
+likelihood <- function(X,beta){
+  
+  probabilities <- exp( t(X) %*% beta) / (1 + exp( t(X) %*% beta) )
+  probabilities
+
+}
+
+likes <- likelihood(X = c(1,10,8,10,10^2,40,1,1), beta = samples) 
+predictions <- rbinom(length(likes),1,prob = likes )
+
+
+hist(predictions, freq = FALSE)
+
+```
+
+

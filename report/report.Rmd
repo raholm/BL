@@ -250,7 +250,10 @@ sigma <- -solve(optpost$hessian)
 set.seed(12345)
 beta_samples <- posterior_beta_sample(n=1000, mu=mu, sigma=sigma)
 cred_intervals <- apply(beta_samples, 2, quantile, prob=c(0.025, 0.975))
+colnames(cred_intervals) <- colnames(women)[-1]
 ```
+
+The 95\% credibility intervals below show that the intercept, husband income, transformed years in work experience, and the number of children older than 6 years are statistical insignificant, i.e. 0 (no impact) is contained in the intervals. This indicates that it may be better to remove those variables from the model.
 
 ```{r}
 cred_intervals
@@ -273,3 +276,5 @@ prediction_samples <- apply(beta_samples, 1,  function(beta) posterior_predictiv
 counts <- table(prediction_samples)
 barplot(counts / sum(counts), ylim=c(0, 1))
 ```
+
+The barplot above indicates that it is much more probable that given the data the woman is not working under our model which is surprising.

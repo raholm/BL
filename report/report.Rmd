@@ -50,24 +50,102 @@ where (?)
 
 ## a)
 
-```{r}
+```{r, message = FALSE}
 
+library(geoR)
 
-mun <- function(y,mu0,tau0sq){
+mun <- function(y,sigmasq,mu0,tau0sq){
   n <- length(y)
-  pt1 <- ((1 / tau0sq) / ((1 / tau0sq) + n) ) * mu0
-  pt2 <- (n / ( (1/tau0sq) + n)) * mean(y) 
+  denom <- ((1 / tau0sq) + (n/sigmasq) )
+  
+  pt1 <- ((1 / tau0sq) / denom)  * mu0
+  pt2 <- ( (n/sigmasq) / denom) * mean(y) 
   
   pt1 + pt2
 }
 
+
+taun <- function(y,sigmasq,tau0sq){
+  tau0sq +  (sigmasq / length(y))
+  
+  1/ tau0sq
+}
+
+nun <- function(y,nu0){
+  
+  nu0 + length(y)
+}
+
+
+sigmasqn <- function(y,sigma0sq,mu0,nu0){
+  
+  (nu0*sigma0sq + sum( (y - mu0)^2 )) / (length(y) + nu0)
+  
+}
+
+
+musampler <- function(y,sigmasq,tau0sq,mu0){
+  
+  Mean  <- mun(y,sigmasq,tau0sq,mu0)
+  SigmaSq <- taun(y,sigmasq,tau0sq)
+  
+  rnorm(1,Mean,SigmaSq)
+  
+}
+
+sigmasampler <- function(y,sigmasq,nu0,mu){
+ ssn  <- sigmasqn(y,sigmasq,mu,nu0)
+ nuna <- nun(y,nu0)
+ 
+ rinvchisq(1, nuna, ssn)
+ }
+
+
+```
+
+Now we start start sampling
+
+```{r}
+
+gibbs <- function(y, iter, mu0, tau0sq, nu0, sigma0sq, init){
+  
+  samples <- matrix(NA,ncol = 2, nrow = iter + 1)
+  
+  samples[1,] <- init
+  
+  for (i in 2:(iter+1)){
+  
+   mu <- musampler(y,sigmasq = samples[i-1,2],tau0sq,mu0)
+   sigma <- sigmasampler(y,sigmasq = sigma0sq,nu0,mu)
+   
+   samples[i,] <- c(mu,sigma)
+   
+  }
+  
+samples  
+}
 
 ```
 
 
 ## b)
 
+
+```{r}
+gibbssamp <- gibbs(y = rainfall$V1, iter = 10000, mu0 = 1,tau0sq = 50,nu0 = 1,sigma0sq = 20, init = c(1,1) )
+
+plot(gibbssamp[,1], type = "l")
+plot(gibbssamp[,2], type = "l")
+
+```
+
+
+
+
 ## c)
+
+
+
 
 \newpage
 

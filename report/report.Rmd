@@ -12,3 +12,54 @@ output:
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
+
+# Question 1
+
+```{r}
+rainfall <- read.table("../data/rainfall.dat", header=F)
+```
+
+Prior
+
+\begin{align*}
+\mu &\sim N(\mu_{0}, \tau_{0}^{2}) \\
+\sigma^2 &\sim \text{Inv--} \chi^2(\nu_{0}, \sigma_{0}^{2})
+\end{align*}
+
+Likelihood
+
+\begin{align*}
+\mathbf{y} | \mu, \sigma^2 &\sim N(\mu, \sigma^2)
+\end{align*}
+
+Posterior
+
+\begin{align*}
+\mu | \sigma^2, \mathbf{x} &\sim N(\mu_{n}, \tau_{n}^{2}) \\
+\sigma^2 | \mu, \mathbf{x} &\sim \text{Inv--} \chi^2 \left( \nu_{n}, \frac{\nu_{0} \sigma_{0}^{2} + \sum_{i=1}^{n} (x_{i} - \mu)^2}{n + \nu_{0}} \right)
+\end{align*}
+
+where (?)
+
+\begin{align*}
+\mu_{n} &= \frac{\frac{1}{\tau_{0}^{2}}}{\frac{1}{\tau_{0}^{2}} + n} \mu_{0} +
+\frac{n}{\frac{1}{\tau_{0}^{2}} + n} \bar{y} \\
+\frac{1}{\tau_{n}^{2}} &= \frac{1}{\tau_{0}^{2}} + n \\
+\nu_{n} &= \nu_{0} + n
+\end{align*}
+
+## a)
+
+## b)
+
+## c)
+
+\newpage
+
+# Question 2
+
+## a)
+
+## b)
+
+## c)

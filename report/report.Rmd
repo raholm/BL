@@ -50,6 +50,21 @@ where (?)
 
 ## a)
 
+```{r}
+
+
+mun <- function(y,mu0,tau0sq){
+  n <- length(y)
+  pt1 <- ((1 / tau0sq) / ((1 / tau0sq) + n) ) * mu0
+  pt2 <- (n / ( (1/tau0sq) + n)) * mean(y) 
+  
+  pt1 + pt2
+}
+
+
+```
+
+
 ## b)
 
 ## c)

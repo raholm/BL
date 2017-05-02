@@ -42,10 +42,10 @@ Posterior
 where (?)
 
 \begin{align*}
-\mu_{n} &= \frac{\frac{1}{\tau_{0}^{2}}}{\frac{1}{\tau_{0}^{2}} + n} \mu_{0} +
-\frac{n}{\frac{1}{\tau_{0}^{2}} + n} \bar{y} \\
-\frac{1}{\tau_{n}^{2}} &= \frac{1}{\tau_{0}^{2}} + n \\
-\nu_{n} &= \nu_{0} + n
+\mu_{n} &= \frac{\frac{1}{\tau_{0}^{2}}}{\frac{1}{\tau_{0}^{2}} + \frac{n}{\sigma^2}} \mu_{0} +
+\frac{\frac{n}{\sigma^2}}{\frac{1}{\tau_{0}^{2}} + \frac{n}{\sigma^2}} \bar{y} \\
+\frac{1}{\tau_{n}^{2}} &= \frac{1}{\tau_{0}^{2}} + \frac{n}{\sigma^2} \\
+\nu_{n} &= \nu_{0} + \frac{n}{\sigma^2}
 \end{align*}
 
 ## a)

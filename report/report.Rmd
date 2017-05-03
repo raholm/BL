@@ -39,7 +39,7 @@ Posterior
 \sigma^2 | \mu, \mathbf{x} &\sim \text{Inv--} \chi^2 \left( \nu_{n}, \frac{\nu_{0} \sigma_{0}^{2} + \sum_{i=1}^{n} (x_{i} - \mu)^2}{n + \nu_{0}} \right)
 \end{align*}
 
-where (?)
+where
 
 \begin{align*}
 \mu_{n} &= \frac{\frac{1}{\tau_{0}^{2}}}{\frac{1}{\tau_{0}^{2}} + \frac{n}{\sigma^2}} \mu_{0} +
@@ -49,6 +49,78 @@ where (?)
 \end{align*}
 
 ## a)
+
+```{r, message = FALSE}
+library(geoR)
+
+mun <- function(x, sigmasq, hyperparams){
+    n <- length(x)
+    denom <- ((1 / hyperparams$tausq0) + (n / sigmasq))
+
+    pt1 <- ((1 / hyperparams$tausq0) / denom)  * hyperparams$mu0
+    pt2 <- ((n / sigmasq) / denom) * mean(x)
+
+    pt1 + pt2
+}
+
+
+taun <- function(x, sigmasq, hyperparams){
+    hyperparams$tausq0 + (sigmasq / length(x))
+    1/ hyperparams$tausq0
+}
+
+nun <- function(x, hyperparams){
+    hyperparams$nu0 + length(x)
+}
+
+
+sigmasqn <- function(x, mu, hyperparams){
+    (hyperparams$nu0 * hyperparams$sigmasq0 + sum((x - mu)^2 )) / (length(x) + hyperparams$nu0)
+}
+
+
+musampler <- function(x,sigmasq, hyperparams){
+    mu <- mun(x, sigmasq, hyperparams)
+    sigma <- sqrt(taun(x,sigmasq, hyperparams))
+    rnorm(1, mu, sigma)
+}
+
+sigmasampler <- function(x, mu, hyperparams){
+    scale  <- sigmasqn(x, mu, hyperparams)
+    df <- nun(x, hyperparams)
+    rinvchisq(1, df, scale)
+}
+```
+
+Now we start start sampling
+
+```{r}
+gibbs <- function(x, iter, init, hyperparams){
+    samples <- matrix(NA, ncol = 2, nrow = iter + 1)
+    samples[1,] <- init
+
+    for (i in 2:(iter+1)){
+        mu <- musampler(x, samples[i-1, 2], hyperparams)
+        sigma <- sigmasampler(x, mu, hyperparams)
+        samples[i,] <- c(mu, sigma)
+    }
+
+    samples
+}
+```
+
+```{r}
+hyperparams <- list(mu0=0, tausq0=50, nu0=1, sigmasq0=50)
+gibbssamp <- gibbs(x=rainfall$V1, iter = 10000, init = c(1,1), hyperparams)
+```
+
+```{r}
+plot(gibbssamp[,1], type = "l", main="Mean")
+```
+
+```{r}
+plot(gibbssamp[,2], type = "l", main="Variance")
+```
 
 ## b)
 

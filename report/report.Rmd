@@ -66,7 +66,7 @@ mun <- function(x, sigmasq, hyperparams){
 
 taun <- function(x, sigmasq, hyperparams){
     hyperparams$tausq0 + (sigmasq / length(x))
-    1/ hyperparams$tausq0
+    1 / hyperparams$tausq0
 }
 
 nun <- function(x, hyperparams){
@@ -144,7 +144,7 @@ pisampler <- function(x, I, hyperparams){
     rbeta(1, shape1 = n$n1 + hyperparams$a1 , shape2 = n$n2 + hyperparams$a2)
 }
 
-sigma2sampler <- function(x, I, hyperparams){
+sigmasq2sampler <- function(x, I, hyperparams){
     n <- nn(I)
     d <- dd(x, I)
 
@@ -153,32 +153,30 @@ sigma2sampler <- function(x, I, hyperparams){
         (((1 / hyperparams$tausq0) * n$n1) / ((1 / hyperparams$tausq0) + n$n1)) *
         ((mean(d$d1) - hyperparams$mu0)^2)
 
-
     vnsn2 <-  hyperparams$nu0 * hyperparams$sigmasq0 +
         (n$n2 - 1) * var(d$d2) +
         (((1 / hyperparams$tausq0) * n$n2) / ((1 / hyperparams$tausq0) + n$n2)) *
         ((mean(d$d2) - hyperparams$mu0)^2)
 
+    vn1 <-  hyperparams$nu0 + n$n1
+    vn2 <-  hyperparams$nu0 + n$n2
 
-    vn1   <-  hyperparams$nu0 + n$n1
-    vn2   <-  hyperparams$nu0 + n$n2
+    sn1 <- vnsn1 / vn1
+    sn2 <- vnsn2 / vn2
 
-    sn1   <- vnsn1 / vn1
-    sn2   <- vnsn2 / vn2
+    sigmasq1 <- rinvchisq(1, vn1, sn1)
+    sigmasq2 <- rinvchisq(1, vn2, sn2)
 
-    sigma1 <- rinvchisq(1, vn1, sn1)
-    sigma2 <- rinvchisq(1, vn2, sn2)
-
-    c(sigma1, sigma2)
+    c(sigmasq1, sigmasq2)
 }
 
 mu2sampler <- function(x, I, sigmasq, hyperparams){
     d <- dd(x, I)
 
-    tau1 <- taun(d$d1, sigmasq[1], hyperparams)
+    tau1 <- sqrt(taun(d$d1, sigmasq[1], hyperparams))
     mun1 <- mun(d$d1, sigmasq[1], hyperparams)
 
-    tau2 <- taun(d$d2, sigmasq[2], hyperparams)
+    tau2 <- sqrt(taun(d$d2, sigmasq[2], hyperparams))
     mun2 <- mun(d$d2, sigmasq[2], hyperparams)
 
     mu1 <- rnorm(1, mun1, tau1)
@@ -208,7 +206,7 @@ mixedgibbs <- function(x, iter, init, hyperparams){
 
     for (i in 1:iter){
         pi <- pisampler(x, I, hyperparams)
-        sigmasq <- sigma2sampler(x, I, hyperparams)
+        sigmasq <- sigmasq2sampler(x, I, hyperparams)
         mu <- mu2sampler(x, I, sigmasq, hyperparams)
         I <- Isampler(x, pi, mu, sigmasq)
 

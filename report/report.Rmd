@@ -128,14 +128,135 @@ samples
 ```
 
 
-## b)
-
-
 ```{r}
 gibbssamp <- gibbs(y = rainfall$V1, iter = 10000, mu0 = 1,tau0sq = 50,nu0 = 1,sigma0sq = 20, init = c(1,1) )
 
 plot(gibbssamp[,1], type = "l")
 plot(gibbssamp[,2], type = "l")
+
+```
+
+
+## b)
+
+```{r}
+
+nn <- function(I){
+  n1 <- sum(I == 1)
+  n2 <- sum(I == 2) 
+  list(n1 = n1,n2 = n2)
+}
+
+pisampler <- function(data,I,a1,a2){
+
+  n <- nn(I) 
+  rbeta(1,shape1 = (n$n1 + a1) , shape2 = (n$n2 + a2))
+  
+}
+  
+sigma2sampler <- function(data,I,mu0,sigma0,nu0,tau0){
+  
+  n <- nn(I) 
+  vnsn1 <-  nu0*sigma0 + (n$n1 - 1)*var(data[I == 1,]) + ((1/tau0)*n$n1) / ((1/tau0) + n$n1) * ((mean(data[I == 1,]) - mu0)^2)
+    
+    
+  vnsn2 <- nu0*sigma0 + (n$n2 - 1)*var(data[I == 2,]) + ((1/tau0)*n$n2) / ((1/tau0) + n$n2) * ((mean(data[I == 2,]) - mu0)^2)
+    
+  vn1   <-  nu0 + n$n1
+  vn2   <-  nu0 + n$n2
+  
+  sn1   <- vnsn1 / vn1 
+  sn2   <- vnsn2 / vn2 
+  
+  sigma21 <- rinvchisq(1,vn1, sn1)
+  sigma22 <- rinvchisq(1,vn2, sn2)
+  
+  c(sigma21, sigma22)
+
+}
+
+
+mu2sampler <- function(data,I,tau0, mu0,sigma){
+  
+  tau1 <- taun(y = data[I == 1,], sigma[1], tau0)
+  mu1n  <- mun(y = data[I == 1,],sigma[1],mu0,tau0)
+ 
+  tau2 <- taun(y = data[I == 2,], sigma[2], tau0)
+  mu2n  <- mun(y = data[I == 2,],sigma[2],mu0,tau0)
+   
+  mu1 <- rnorm(1,mu1n,tau1)
+  mu2 <- rnorm(1,mu2n,tau2)
+  
+  c(mu1,mu2)
+}
+
+
+Isampler <- function(pi,data,mu1,mu2,sigma1,sigma2){
+  
+  nom <- (1 - pi) *dnorm(data[,1],mu2,sigma2) 
+  
+  denom <- pi*dnorm(data[,1],mu1,sigma1) + nom 
+  
+  theta <- nom / denom
+  
+  rbinom(length(data[,1]), prob = theta, size = 1 ) + 1 # to get them into 1 and 2
+  
+}
+
+
+ysampler <- function(pi, mu1, mu2, sigma1, sigma2){
+  
+  pi * rnorm(1, mu1, sigma1) + (1 - pi) * rnorm(1, mu2, sigma2)
+  
+}
+
+```
+And now we sample. 
+
+```{r}
+
+
+mixedgibbs <- function(data, a1,a2,mu0,tau0,sigma0,nu0, init, iter){
+  
+  samples <- matrix(NA,ncol = 4, nrow = iter)
+  
+  I <- init 
+
+  for (i in 1:iter){
+  
+  pi <- pisampler(data = data, I = I, a1 = a1, a2 = a2)  
+  
+  sigma   <- sigma2sampler(data,I,mu0,sigma0,nu0,tau0)
+  
+  mu <- mu2sampler(data,I,tau0, mu0,sigma)
+    
+  I <- Isampler(pi,data,mu1 = mu[1],mu2 = mu[2],sigma1 = sigma[1], sigma2 = sigma[2])
+  samples[i,] <- c(mu,sigma)
+   
+  }
+  
+samples  
+} 
+  
+  
+
+
+```
+
+
+
+```{r}
+mixedsamples <- mixedgibbs(data = rainfall, a1 = 1 ,a2 = 1 ,mu0 = 1,tau0 = 50, sigma0 = 50,nu0 = 1, init = sample(c(1,2), size = length(rainfall$V1), replace = TRUE), iter = 10000)
+
+par(mfrow = c(2,2))
+plot(x = 1:10000, mixedsamples[,1], type = "l")
+plot(x = 1:10000, mixedsamples[,2], type = "l")
+plot(x = 1:10000, mixedsamples[,3], type = "l")
+plot(x = 1:10000, mixedsamples[,4], type = "l")
+
+par(mfrow = c(1,1))
+
+
 
 ```
 

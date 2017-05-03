@@ -110,6 +110,8 @@ gibbs <- function(x, iter, init, hyperparams){
 ```
 
 ```{r}
+set.seed(123456)
+
 hyperparams <- list(mu0=0, tausq0=50, nu0=1, sigmasq0=50)
 gibbssamp <- gibbs(x=rainfall$V1, iter = 10000, init = c(1,1), hyperparams)
 ```
@@ -123,6 +125,118 @@ plot(gibbssamp[,2], type = "l", main="Variance")
 ```
 
 ## b)
+
+```{r}
+nn <- function(I){
+    n1 <- sum(I == 1)
+    n2 <- sum(I == 2)
+    list(n1 = n1,n2 = n2)
+}
+
+dd <- function(x, I) {
+    d1 <- x[I == 1]
+    d2 <- x[I == 2]
+    list(d1=d1, d2=d2)
+}
+
+pisampler <- function(x, I, hyperparams){
+    n <- nn(I)
+    rbeta(1, shape1 = n$n1 + hyperparams$a1 , shape2 = n$n2 + hyperparams$a2)
+}
+
+sigma2sampler <- function(x, I, hyperparams){
+    n <- nn(I)
+    d <- dd(x, I)
+
+    vnsn1 <-  hyperparams$nu0 * hyperparams$sigmasq0 +
+        (n$n1 - 1) * var(d$d1) +
+        (((1 / hyperparams$tausq0) * n$n1) / ((1 / hyperparams$tausq0) + n$n1)) *
+        ((mean(d$d1) - hyperparams$mu0)^2)
+
+
+    vnsn2 <-  hyperparams$nu0 * hyperparams$sigmasq0 +
+        (n$n2 - 1) * var(d$d2) +
+        (((1 / hyperparams$tausq0) * n$n2) / ((1 / hyperparams$tausq0) + n$n2)) *
+        ((mean(d$d2) - hyperparams$mu0)^2)
+
+
+    vn1   <-  hyperparams$nu0 + n$n1
+    vn2   <-  hyperparams$nu0 + n$n2
+
+    sn1   <- vnsn1 / vn1
+    sn2   <- vnsn2 / vn2
+
+    sigma1 <- rinvchisq(1, vn1, sn1)
+    sigma2 <- rinvchisq(1, vn2, sn2)
+
+    c(sigma1, sigma2)
+}
+
+mu2sampler <- function(x, I, sigmasq, hyperparams){
+    d <- dd(x, I)
+
+    tau1 <- taun(d$d1, sigmasq[1], hyperparams)
+    mun1 <- mun(d$d1, sigmasq[1], hyperparams)
+
+    tau2 <- taun(d$d2, sigmasq[2], hyperparams)
+    mun2 <- mun(d$d2, sigmasq[2], hyperparams)
+
+    mu1 <- rnorm(1, mun1, tau1)
+    mu2 <- rnorm(1, mun2, tau2)
+
+    c(mu1, mu2)
+}
+
+Isampler <- function(x, pi, mu, sigmasq){
+    nom <- (1 - pi) * dnorm(x, mu[2], sqrt(sigmasq[2]))
+    denom <- pi * dnorm(x, mu[1], sqrt(sigmasq[1])) + nom
+    theta <- nom / denom
+    rbinom(length(x), prob = theta, size = 1) + 1 # to get them into 1 and 2
+}
+
+ysampler <- function(pi, mu, sigmasq){
+    pi * rnorm(1, mu[1], sqrt(sigmasq[1])) +
+        (1 - pi) * rnorm(1, mu[2], sqrt(sigmasq[2]))
+}
+```
+And now we sample.
+
+```{r}
+mixedgibbs <- function(x, iter, init, hyperparams){
+    samples <- matrix(NA, ncol = 4, nrow = iter)
+    I <- init
+
+    for (i in 1:iter){
+        pi <- pisampler(x, I, hyperparams)
+        sigmasq <- sigma2sampler(x, I, hyperparams)
+        mu <- mu2sampler(x, I, sigmasq, hyperparams)
+        I <- Isampler(x, pi, mu, sigmasq)
+
+        samples[i,] <- c(mu, sigmasq)
+    }
+
+    samples
+}
+```
+
+```{r}
+set.seed(123456)
+
+hyperparams <- list(a1=1, a2=1, mu0=1, tausq0=50, nu0=1, sigmasq0=50)
+init <- sample(c(1, 2), size=length(rainfall$V1), replace=TRUE)
+iter <- 1000
+
+mixedsamples <- mixedgibbs(rainfall$V1, iter, init, hyperparams)
+```
+
+```{r}
+par(mfrow = c(2,2))
+plot(x = 1:iter, mixedsamples[,1], type = "l")
+plot(x = 1:iter, mixedsamples[,2], type = "l")
+plot(x = 1:iter, mixedsamples[,3], type = "l")
+plot(x = 1:iter, mixedsamples[,4], type = "l")
+par(mfrow = c(1,1))
+```
 
 ## c)
 

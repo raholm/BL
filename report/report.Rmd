@@ -90,11 +90,7 @@ sigmasampler <- function(x, mu, hyperparams){
     df <- nun(x, hyperparams)
     rinvchisq(1, df, scale)
 }
-```
 
-Now we start start sampling
-
-```{r}
 gibbs <- function(x, iter, init, hyperparams){
     samples <- matrix(NA, ncol = 2, nrow = iter + 1)
     samples[1,] <- init
@@ -173,14 +169,14 @@ sigmasq2sampler <- function(x, I, hyperparams){
 mu2sampler <- function(x, I, sigmasq, hyperparams){
     d <- dd(x, I)
 
-    tau1 <- sqrt(taun(d$d1, sigmasq[1], hyperparams))
-    mun1 <- mun(d$d1, sigmasq[1], hyperparams)
+    sigma1 <- sqrt(taun(d$d1, sigmasq[1], hyperparams))
+    mu1 <- mun(d$d1, sigmasq[1], hyperparams)
 
-    tau2 <- sqrt(taun(d$d2, sigmasq[2], hyperparams))
-    mun2 <- mun(d$d2, sigmasq[2], hyperparams)
+    sigma2 <- sqrt(taun(d$d2, sigmasq[2], hyperparams))
+    mu2 <- mun(d$d2, sigmasq[2], hyperparams)
 
-    mu1 <- rnorm(1, mun1, tau1)
-    mu2 <- rnorm(1, mun2, tau2)
+    mu1 <- rnorm(1, mu1, sigma1)
+    mu2 <- rnorm(1, mu2, sigma2)
 
     c(mu1, mu2)
 }
@@ -196,10 +192,7 @@ ysampler <- function(pi, mu, sigmasq){
     pi * rnorm(1, mu[1], sqrt(sigmasq[1])) +
         (1 - pi) * rnorm(1, mu[2], sqrt(sigmasq[2]))
 }
-```
-And now we sample.
 
-```{r}
 mixedgibbs <- function(x, iter, init, hyperparams){
     samples <- matrix(NA, ncol = 4, nrow = iter)
     I <- init

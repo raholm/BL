@@ -101,6 +101,7 @@ gibbs <- function(x, iter, init, hyperparams){
         samples[i,] <- c(mu, sigma)
     }
 
+    colnames(samples) <- c("mu", "sigmasq")
     samples
 }
 ```
@@ -109,15 +110,13 @@ gibbs <- function(x, iter, init, hyperparams){
 set.seed(123456)
 
 hyperparams <- list(mu0=0, tausq0=50, nu0=1, sigmasq0=50)
-gibbssamp <- gibbs(x=rainfall$V1, iter = 10000, init = c(1,1), hyperparams)
+gibbs_params <- gibbs(x=rainfall$V1, iter = 10000, init = c(1,1), hyperparams)
 ```
 
 ```{r}
-plot(gibbssamp[,1], type = "l", main="Mean")
-```
-
-```{r}
-plot(gibbssamp[,2], type = "l", main="Variance")
+par(mfrow=c(1, 2))
+plot(gibbs_params[, 1], type = "l", xlab="iteration", ylab=expression(mu), main="Convergence")
+plot(gibbs_params[, 2], type = "l", xlab="iteration", ylab=expression(sigma^2), main="Convergence")
 ```
 
 ## b)
@@ -195,7 +194,7 @@ ysampler <- function(pi, mu, sigmasq){
 
 mixedgibbs <- function(x, iter, init, hyperparams){
     params_samples <- matrix(NA, ncol = 5, nrow = iter)
-    samples <- rep(NA, length(x))
+    samples <- rep(NA, iter)
     I <- init
 
     for (i in 1:iter){
@@ -208,6 +207,7 @@ mixedgibbs <- function(x, iter, init, hyperparams){
         params_samples[i,] <- c(mu, sigmasq, pi)
     }
 
+    colnames(params_samples) <- c("mu1", "mu2", "sigmasq1", "sigmasq2", "pi")
     list(samples=samples, params=params_samples)
 }
 ```
@@ -219,26 +219,61 @@ hyperparams <- list(a1=1, a2=1, mu0=1, tausq0=50, nu0=1, sigmasq0=50)
 init <- sample(c(1, 2), size=length(rainfall$V1), replace=TRUE)
 iter <- 1000
 
-mixedg <- mixedgibbs(rainfall$V1, iter, init, hyperparams)
-mixedsamples <- mixedg$params
-samples <- mixedg$samples
+mixed <- mixedgibbs(rainfall$V1, iter, init, hyperparams)
+mixed_params <- mixed$params
+mixed_samples <- mixed$samples
 ```
 
 ```{r}
-par(mfrow = c(3,2))
-plot(x = 1:iter, mixedsamples[,1], type = "l")
-plot(x = 1:iter, mixedsamples[,2], type = "l")
-plot(x = 1:iter, mixedsamples[,3], type = "l")
-plot(x = 1:iter, mixedsamples[,4], type = "l")
-plot(x = 1:iter, mixedsamples[, 5], type="l")
+par(mfrow = c(1, 2))
+plot(x = 1:iter, mixed_params[, 1], type = "l", xlab="iteration", ylab = "mu1")
+plot(x = 1:iter, mixed_params[, 3], type = "l", xlab="iteration", ylab = "sigmasq1")
+
+plot(x = 1:iter, mixed_params[, 2], type = "l", xlab="iteration", ylab = "mu2")
+plot(x = 1:iter, mixed_params[, 4], type = "l", xlab="iteration", ylab = "sigmasq2")
+
 par(mfrow = c(1,1))
+plot(x = 1:iter, mixed_params[, 5], type = "l", xlab="iteration", ylab = "pi")
 ```
 
 ```{r}
-hist(samples)
+hist(mixed_samples, main="Mixed Normal Samples", xlab="x", ylab="density", freq=FALSE)
 ```
 
 ## c)
+
+```{r}
+n <- 10000
+
+## Data Density
+plot(density(rainfall$V1), lwd=2, col="black",
+     xlim=c(-100, 200), xlab="x", ylab="density",
+     main="")
+
+## Model A
+mu <- mean(gibbs_params[, "mu"])
+sigmasq <- mean(gibbs_params[, "sigmasq"])
+
+samples <- rnorm(n, mu, sqrt(sigmasq))
+
+lines(density(samples), lwd=2, col="orange")
+
+## Model B
+mu1 <- mean(mixed_params[, "mu1"])
+sigmasq1 <- mean(mixed_params[, "sigmasq1"])
+
+mu2 <- mean(mixed_params[, "mu2"])
+sigmasq2 <- mean(mixed_params[, "sigmasq2"])
+
+pi <- mean(mixed_params[, "pi"])
+
+samples <- pi * rnorm(n, mu1, sqrt(sigmasq1)) + (1 - pi) * rnorm(n, mu2, sqrt(sigmasq2))
+
+lines(density(samples), lwd=2, col="blue")
+
+legend(101, 0.03, lty=c(1, 1, 1), lwd=c(2, 2, 2), col=c("black", "orange", "blue"),
+       legend=c("Data", "Normal", "Mixture Normal"))
+```
 
 \newpage
 

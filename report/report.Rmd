@@ -384,5 +384,7 @@ optpost <- optim(par = matrix(rep(0, 8), ncol = 1),
                  mean = mu, sigma = sigma,
                  control=list(fnscale=-1))
 
+
+optpost$par
 ```
 

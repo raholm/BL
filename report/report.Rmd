@@ -435,6 +435,7 @@ options(digits=3)
 
 probitbetas
 quadbetas <- as.vector(quadapprox$par)
+quadbetas
 ```
 
 \newpage

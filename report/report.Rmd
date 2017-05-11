@@ -287,8 +287,112 @@ legend(101, 0.03, lty=c(1, 1, 1), lwd=c(2, 2, 2), col=c("black", "orange", "blue
 
 # Question 2
 
+```{r}
+women <- read.table("../data/womenwork.dat", header = T)
+women <- as.matrix(women)
+```
+
 ## a)
+
+```{r, message=FALSE}
+library(msm)
+library(mvtnorm)
+
+
+
+
+betahat <- function(XX,X,y){
+  
+  solve(XX) %*% t(X) %*% y
+  
+}
+
+mun <- function(XX,betahat,mu0,omega0){
+  
+ solve( XX + omega0 ) %*% (XX %*% betahat - omega0 %*% mu0)
+  
+}
+
+
+probitgibbs <- function(X,Y,mu0,omega0,beta0, iter){
+  
+  samples <- matrix(ncol = ncol(X), nrow = iter)
+  y0 <- Y == 0
+  y0n <- sum(y0)
+  y1n <- sum(!y0)
+  XX <- t(X) %*% X 
+  omegan <- XX + omega0
+  u <- c(rep(1, times = length(Y))) 
+  beta <- beta0
+  
+  for (i in 1:iter){
+  
+    xB <- X %*% beta 
+  
+    u[y0] <- rtnorm(n = y0n,mean = xB[y0], sd = 1, lower = -Inf, upper = 0)
+    u[!y0]<- rtnorm(n = y1n,mean = xB[!y0], sd = 1, lower = 0, upper = Inf)
+  
+    baehat <- betahat(XX,X,u)
+    myn <- mun(XX,baehat,mu0,omega0)
+    
+    beta <- as.vector(rmvnorm(1, mean = myn, sigma = 1 * solve(omegan) ))
+    samples[i,] <- beta
+  }
+  samples
+}
+
+```
+
 
 ## b)
 
+```{r}
+betas <- probitgibbs(X = women[,-1], Y = women[,1], 
+                     mu0 = rep(0, times = ncol(women[,-1])), 
+                     omega0 = 100* diag(ncol(women[,-1])),
+                     beta = rep(0, times = ncol(women[,-1])), iter = 10000)  
+colMeans(betas)
+```
+
+
 ## c)
+
+```{r}
+
+logprior <- function(beta, mean, sigma){
+    dmvnorm(beta, mean = mean, sigma = sigma, log = TRUE)
+}
+
+loglikelihood <- function(beta, X, Y){
+    linear_prediction <- t(X) %*% beta
+    P <- pnorm(linear_prediction, mean = 0, sd = 1)
+    probabilities <- Y * log(P) + (1 - Y)*log(1 - P)
+    loglike <- sum(probabilities)
+
+    ## if (abs(loglike) == Inf)
+    ##     loglike = -20000
+
+    loglike
+}
+
+logposterior <- function(beta, X, Y, mean, sigma){
+   loglikelihood(beta, X, Y) + logprior(beta, mean, sigma)
+}
+
+tau <- 10
+mu <- rep(0,8)
+sigma <- tau^2 * diag(8)
+
+womenX <- as.matrix(women[,2:ncol(women)])
+womenY <- as.matrix(women[,1])
+
+optpost <- optim(par = matrix(rep(0, 8), ncol = 1),
+                 fn = logposterior, method = "BFGS", hessian = TRUE,
+                 X = t(womenX), Y = womenY,
+                 mean = mu, sigma = sigma,
+                 control=list(fnscale=-1))
+
+
+optpost$par
+```
+

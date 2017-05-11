@@ -16,6 +16,8 @@ knitr::opts_chunk$set(echo = TRUE)
 # Question 1
 
 ```{r}
+options(digits=2)
+
 rainfall <- read.table("../data/rainfall.dat", header=F)
 ```
 
@@ -115,11 +117,37 @@ iter <- 5000
 gibbs_params <- gibbs(x=rainfall$V1, iter = iter, init = c(1,1), hyperparams)
 ```
 
-```{r}
+```{r, echo=FALSE}
 par(mfrow=c(1, 2))
-plot(gibbs_params[, 1], type = "l", xlab="iteration", ylab=expression(mu), main="Convergence")
-plot(gibbs_params[, 2], type = "l", xlab="iteration", ylab=expression(sigma^2), main="Convergence")
+plot(gibbs_params[, "mu"], type = "l", xlab="iteration",
+     ylab=expression(mu), main="Convergence")
+plot(gibbs_params[, "sigmasq"], type = "l", xlab="iteration",
+     ylab=expression(sigma^2), main="Convergence")
 ```
+
+The $\mu$ converges to `r mean(gibbs_params[, "mu"])` which is similar to the data mean, `r mean(rainfall$V1)`, and $\sigma^2$ converges to `r mean(gibbs_params[, "sigmasq"])` which is similar to data variance, `r var(rainfall$V1)`.
+
+```{r, echo=FALSE}
+par(mfrow=c(1, 2))
+plot(gibbs_params[1:50, "mu"], type = "l", xlab="iteration",
+     ylab=expression(mu), main="Convergence")
+plot(gibbs_params[1:50, "sigmasq"], type = "l", xlab="iteration",
+     ylab=expression(sigma^2), main="Convergence")
+```
+
+The convergence happens after just a few iterations.
+
+```{r, echo=FALSE}
+mu <- mean(gibbs_params[, "mu"])
+sigmasq <- mean(gibbs_params[, "sigmasq"])
+samples <- rnorm(10000, mean=mu, sd=sqrt(sigmasq))
+
+hist(rainfall$V1, freq=FALSE, breaks=50, xlim=c(-100, 300),
+     xlab="percipitation", ylab="density", main="")
+lines(density(samples), col="orange", lwd=2)
+```
+
+The data is obviously not normally distributed so the model is not particularly good which is seen by the blue curve.
 
 ## b)
 
@@ -219,28 +247,53 @@ set.seed(123456)
 
 hyperparams <- list(a1=1, a2=1, mu0=1, tausq0=50, nu0=1, sigmasq0=50)
 init <- sample(c(1, 2), size=length(rainfall$V1), replace=TRUE)
-iter <- 5000
+iter <- 10000
 
 mixed <- mixedgibbs(rainfall$V1, iter, init, hyperparams)
 mixed_params <- mixed$params
 mixed_samples <- mixed$samples
 ```
 
-```{r}
+```{r, echo=FALSE}
 par(mfrow = c(1, 2))
-plot(x = 1:iter, mixed_params[, 1], type = "l", xlab="iteration", ylab = "mu1")
-plot(x = 1:iter, mixed_params[, 3], type = "l", xlab="iteration", ylab = "sigmasq1")
+plot(x = 1:iter, mixed_params[, 1], type = "l", xlab="iteration", ylab = expression(mu[1]))
+plot(x = 1:iter, mixed_params[, 3], type = "l", xlab="iteration", ylab = expression(sigma[1]^2))
+```
 
-plot(x = 1:iter, mixed_params[, 2], type = "l", xlab="iteration", ylab = "mu2")
-plot(x = 1:iter, mixed_params[, 4], type = "l", xlab="iteration", ylab = "sigmasq2")
+```{r, echo=FALSE}
+par(mfrow = c(1, 2))
+plot(x = 1:iter, mixed_params[, 2], type = "l", xlab="iteration", ylab = expression(mu[2]))
+plot(x = 1:iter, mixed_params[, 4], type = "l", xlab="iteration", ylab = expression(sigma[2]^2))
+```
 
+```{r, echo=FALSE}
 par(mfrow = c(1,1))
 plot(x = 1:iter, mixed_params[, 5], type = "l", xlab="iteration", ylab = "pi")
 ```
 
-```{r}
-hist(mixed_samples, main="Mixed Normal Samples", xlab="x", ylab="density", freq=FALSE)
+```{r, echo=FALSE}
+n <- 10000
+
+mu1 <- mean(mixed_params[, "mu1"])
+sigmasq1 <- mean(mixed_params[, "sigmasq1"])
+samples1 <- rnorm(n, mu1, sqrt(sigmasq1))
+
+mu2 <- mean(mixed_params[, "mu2"])
+sigmasq2 <- mean(mixed_params[, "sigmasq2"])
+samples2 <- rnorm(n, mu2, sqrt(sigmasq2))
+
+pi <- mean(mixed_params[, "pi"])
+samples3 <- pi * samples1 + (1 - pi) * samples2
+
+
+hist(rainfall$V1, freq=FALSE, xlim=c(-100, 300), ylim=c(0, 0.05), breaks=50,
+     xlab="percipitation", main="Densities of Normals")
+lines(density(samples1), col="blue", lwd=2)
+lines(density(samples2), col="red", lwd=2)
+lines(density(samples3), col="purple", lwd=2)
 ```
+
+We can see that the two Gaussian distributions in the mixture model represent low values with high density, the red curve, and those with higher values with a wider distribution, the blue curve. Then the model, the purple curve, is an average of those aforementioned distributions. However, as mention before the data is not normally distributed so the final model is far from perfect.
 
 ## c)
 
@@ -251,12 +304,7 @@ burnins <- 1000 + 1
 gibbs_params <- gibbs_params[-(1:burnins),]
 mixed_params <- mixed_params[-(1:burnins),]
 
-## Data Density
-## plot(density(rainfall$V1), lwd=2, col="black",
-##      xlim=c(-100, 200), xlab="x", ylab="density",
-##      main="")
-
-hist(rainfall$V1, freq=FALSE, breaks=50, xlim=c(-100, 200), main=FALSE)
+hist(rainfall$V1, freq=FALSE, breaks=50, xlim=c(-100, 200), main="", xlab="percipitation")
 
 ## Model A
 mu <- mean(gibbs_params[, "mu"])
@@ -279,16 +327,18 @@ samples <- pi * rnorm(n, mu1, sqrt(sigmasq1)) + (1 - pi) * rnorm(n, mu2, sqrt(si
 
 lines(density(samples), lwd=2, col="blue")
 
-legend(101, 0.03, lty=c(1, 1, 1), lwd=c(2, 2, 2), col=c("black", "orange", "blue"),
-       legend=c("Data", "Normal", "Mixture Normal"))
+legend(101, 0.03, lty=c(1, 1), lwd=c(2, 2), col=c("orange", "purple"),
+       legend=c("Normal", "Mixture Normal"))
 ```
+
+Comparing the normal model and the mixture of normals we conclude that the latter is better in this case but it would probably have been better to choose either a truncated Normal or exponential distribution as the model since we know that percipitation cannot be negative.
 
 \newpage
 
 # Question 2
 
 ```{r}
-women <- read.table("../data/womenwork.dat", header = T)
+women <- read.table("../data/WomenWork.dat", header = T)
 women <- as.matrix(women)
 ```
 
@@ -298,67 +348,54 @@ women <- as.matrix(women)
 library(msm)
 library(mvtnorm)
 
-
-
-
-betahat <- function(XX,X,y){
-  
+betahat <- function(XX, X, y){
   solve(XX) %*% t(X) %*% y
-  
 }
 
-mun <- function(XX,betahat,mu0,omega0){
-  
+mun <- function(XX, betahat, mu0, omega0){
  solve( XX + omega0 ) %*% (XX %*% betahat - omega0 %*% mu0)
-  
 }
 
-
-probitgibbs <- function(X,Y,mu0,omega0,beta0, iter){
-  
+probitgibbs <- function(X, Y, mu0, omega0, beta0, iter){
   samples <- matrix(ncol = ncol(X), nrow = iter)
   y0 <- Y == 0
   y0n <- sum(y0)
   y1n <- sum(!y0)
-  XX <- t(X) %*% X 
+  XX <- t(X) %*% X
   omegan <- XX + omega0
-  u <- c(rep(1, times = length(Y))) 
+  u <- c(rep(1, times = length(Y)))
   beta <- beta0
-  
+
   for (i in 1:iter){
-  
-    xB <- X %*% beta 
-  
+
+    xB <- X %*% beta
+
     u[y0] <- rtnorm(n = y0n,mean = xB[y0], sd = 1, lower = -Inf, upper = 0)
     u[!y0]<- rtnorm(n = y1n,mean = xB[!y0], sd = 1, lower = 0, upper = Inf)
-  
+
     baehat <- betahat(XX,X,u)
     myn <- mun(XX,baehat,mu0,omega0)
-    
+
     beta <- as.vector(rmvnorm(1, mean = myn, sigma = 1 * solve(omegan) ))
     samples[i,] <- beta
   }
   samples
 }
-
 ```
-
 
 ## b)
 
 ```{r}
-betas <- probitgibbs(X = women[,-1], Y = women[,1], 
-                     mu0 = rep(0, times = ncol(women[,-1])), 
+betas <- probitgibbs(X = women[,-1], Y = women[,1],
+                     mu0 = rep(0, times = ncol(women[,-1])),
                      omega0 = 100* diag(ncol(women[,-1])),
-                     beta = rep(0, times = ncol(women[,-1])), iter = 10000)  
-colMeans(betas)
+                     beta = rep(0, times = ncol(women[,-1])), iter = 10000)
+probitbetas <- colMeans(betas)
 ```
-
 
 ## c)
 
 ```{r}
-
 logprior <- function(beta, mean, sigma){
     dmvnorm(beta, mean = mean, sigma = sigma, log = TRUE)
 }
@@ -386,13 +423,34 @@ sigma <- tau^2 * diag(8)
 womenX <- as.matrix(women[,2:ncol(women)])
 womenY <- as.matrix(women[,1])
 
-optpost <- optim(par = matrix(rep(0, 8), ncol = 1),
+quadapprox <- optim(par = matrix(rep(0, 8), ncol = 1),
                  fn = logposterior, method = "BFGS", hessian = TRUE,
                  X = t(womenX), Y = womenY,
                  mean = mu, sigma = sigma,
                  control=list(fnscale=-1))
-
-
-optpost$par
 ```
 
+```{r}
+options(digits=3)
+
+probitbetas
+quadbetas <- as.vector(quadapprox$par)
+```
+
+\newpage
+
+```{r, echo=FALSE}
+par(mfrow=c(4, 2), mar=c(2, 1, 2, 1))
+for (i in 1:ncol(betas)) {
+    ci <- quantile(betas[, i], c(0.015, 0.985))
+    xlim <- c(min(min(betas[,i]), quadbetas[i]), max(max(betas[,i]), quadbetas[i]))
+
+    hist(betas[, i], xlim=xlim, xlab="", ylab="", main=paste("Beta", i),
+         breaks=50, xaxt='n', yaxt="n")
+    abline(v=ci[1], lwd=4, col="blue")
+    abline(v=ci[2], lwd=4, col="blue")
+    abline(v=quadbetas[i], lwd=4, col="red")
+}
+```
+
+The blue lines show the 97\% credibility intervals and the red lines represent the corresponding parameter value found by normal approximation.

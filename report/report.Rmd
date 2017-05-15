@@ -147,7 +147,7 @@ hist(rainfall$V1, freq=FALSE, breaks=50, xlim=c(-100, 300),
 lines(density(samples), col="orange", lwd=2)
 ```
 
-The data is obviously not normally distributed so the model is not particularly good which is seen by the blue curve.
+The data is obviously not normally distributed so the model is not particularly good which is seen by the orange curve.
 
 ## b)
 
@@ -260,16 +260,22 @@ plot(x = 1:iter, mixed_params[, 1], type = "l", xlab="iteration", ylab = express
 plot(x = 1:iter, mixed_params[, 3], type = "l", xlab="iteration", ylab = expression(sigma[1]^2))
 ```
 
+The first normal distribution have settled at mean of around 60 and variance of 2000. We can see that it has larger variance in the parameters than the previous model and for the mean it is noticeable autocorrelation between iterations.
+
 ```{r, echo=FALSE}
 par(mfrow = c(1, 2))
 plot(x = 1:iter, mixed_params[, 2], type = "l", xlab="iteration", ylab = expression(mu[2]))
 plot(x = 1:iter, mixed_params[, 4], type = "l", xlab="iteration", ylab = expression(sigma[2]^2))
 ```
 
+The second normal distribution have a mean of approximately 10 and variance of around 50. Similarly as before we can see autocorrelation which indicate that it would probably be beneficial to run the algorithm for longer to get a larger effective sample size that is comparable to the simple normal model in \textit{1a}.
+
 ```{r, echo=FALSE}
 par(mfrow = c(1,1))
-plot(x = 1:iter, mixed_params[, 5], type = "l", xlab="iteration", ylab = "pi")
+plot(x = 1:iter, mixed_params[, 5], type = "l", xlab="iteration", ylab = expression(pi))
 ```
+
+The $\pi$ is the probability of the observation to be from the first normal distribution and we can see that it is around 45\%.
 
 ```{r, echo=FALSE}
 n <- 10000
@@ -428,30 +434,32 @@ quadapprox <- optim(par = matrix(rep(0, 8), ncol = 1),
                  X = t(womenX), Y = womenY,
                  mean = mu, sigma = sigma,
                  control=list(fnscale=-1))
+
+mu <- quadapprox$par
+sigma <- -solve(quadapprox$hessian)
+quadbetas <- rmvnorm(nrow(betas), mean=mu, sigma=sigma)
 ```
 
 ```{r}
 options(digits=3)
 
 probitbetas
-quadbetas <- as.vector(quadapprox$par)
-quadbetas
+as.vector(quadapprox$par)
 ```
 
 \newpage
 
 ```{r, echo=FALSE}
+diff <- betas - quadbetas
+
 par(mfrow=c(4, 2), mar=c(2, 1, 2, 1))
 for (i in 1:ncol(betas)) {
-    ci <- quantile(betas[, i], c(0.015, 0.985))
-    xlim <- c(min(min(betas[,i]), quadbetas[i]), max(max(betas[,i]), quadbetas[i]))
-
-    hist(betas[, i], xlim=xlim, xlab="", ylab="", main=paste("Beta", i),
-         breaks=50, xaxt='n', yaxt="n")
+    ci <- quantile(diff[, i], c(0.015, 0.985))
+    hist(diff[, i], xlab="", ylab="", main=bquote(beta[.(i-1)]),
+         breaks=50, yaxt="n")
     abline(v=ci[1], lwd=4, col="blue")
     abline(v=ci[2], lwd=4, col="blue")
-    abline(v=quadbetas[i], lwd=4, col="red")
 }
 ```
 
-The blue lines show the 97\% credibility intervals and the red lines represent the corresponding parameter value found by normal approximation.
+The histograms above show the distributions for the difference, $\beta_{i}^{\text{Gibbs}} - \beta_{i}^{\text{Norm}}$ for $i = 0, \ldots, 7$, and the blue lines are the 97\% credibility intervals. We can see that only in the $\beta_{6}$ parameter that 0 is not within the credibility interval which indicate that there is a difference in that parameter. However, the rest of the parameters do not differ statistically so we would conclude that the quadratic (normal) approximation is a decent approximation in this case.

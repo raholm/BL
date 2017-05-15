@@ -462,4 +462,4 @@ for (i in 1:ncol(betas)) {
 }
 ```
 
-The histograms above show the distributions for the difference, $\beta_{i}^{\text{Gibbs}} - \beta_{i}^{\text{Norm}}$ for $i = 0, \ldots, 7$, and the blue lines are the 97\% credibility intervals. We can see that only in the $\beta_{6}$ parameter that 0 is not within the credibility interval which indicate that there is a difference in that parameter but not by much. However, the rest of the parameters do not differ statistically so we would conclude that the quadratic (normal) approximation is a decent approximation in this case.
+The histograms above show the distributions for the difference, $\beta_{i}^{\text{Gibbs}} - \beta_{i}^{\text{Norm}}$ for $i = 0, \ldots, 7$, and the blue lines are the 97\% credibility intervals. We can see that only in the $\beta_{6}$ parameter that 0 is not within the credibility interval which indicate that there is a difference in that parameter. However, the rest of the parameters do not differ statistically so we conclude that the quadratic (normal) approximation is a decent approximation in this case.

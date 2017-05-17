@@ -14,3 +14,188 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 # Question 1
+
+```{r}
+bid <- read.table("../data/eBayNumberOfBidderData.dat",header = TRUE)
+```
+
+
+## a) 
+
+```{r}
+poiglm <- glm(nBids ~ . - 1, data = bid, family = poisson(link = "log"))
+summary(poiglm)
+```
+
+## b) 
+
+```{r}
+
+library(mvtnorm)
+
+logprior <- function(beta, mean, sigma){
+    dmvnorm(beta, mean = mean, sigma = sigma, log = TRUE)
+}
+
+
+logfac <- function(i){
+  sum(log(1:i)) 
+} 
+
+# loglikelihood <- function(beta, X, Y){
+#     
+#   linear_prediction <- t(X) %*% beta
+# 
+#   lf <- sum(sapply(Y, FUN = logfac))
+#   
+#   probabilities <- lf + sum(Y) * linear_prediction -
+#     nrow(X) * exp(linear_prediction)
+#   
+#   loglike <- sum(probabilities)
+# 
+#     ## if (abs(loglike) == Inf)
+#     ##     loglike = -20000
+# 
+#     loglike
+# }
+
+loglikelihood <- function(beta,X,Y){
+  linear_prediction <- t(X) %*% beta
+  
+  probs <- dpois(Y , lambda = exp(linear_prediction), log = TRUE)
+  sum(probs)
+}
+
+
+logposterior <- function(beta, X, Y, mean, sigma){
+   loglikelihood(beta, X, Y) + logprior(beta, mean, sigma)
+}
+
+
+
+X <- as.matrix(bid[,-1])
+Y <- as.matrix(bid[,1])
+
+mu <- rep(0, ncol(X))
+sigma <- 100 * solve(t(X) %*% X)
+
+#rep(0, ncol(X))
+
+optpost <- optim(par = matrix(rep(0,ncol(X)), ncol = 1),
+                 fn = logposterior, method = "BFGS", hessian = TRUE,
+                 X = t(X), Y = Y,
+                 mean = mu, sigma = sigma,
+                 control=list(fnscale=-1))
+
+hessian <- optpost$hessian
+
+
+```
+
+```{r}
+
+optpost$par
+t(coef(poiglm))
+
+
+```
+
+
+## c) 
+
+
+```{r}
+
+#
+targetdensity <- function(theta,priormu,priorsigma,X,Y,...) {
+   
+    likelihood <- dpois(Y, lambda = exp(t(X) %*% t(theta)),log = TRUE) 
+    prior      <- dmvnorm(theta, mean = priormu, sigma = priorsigma)
+
+    sum(likelihood) * prior
+}
+
+
+proposaldensity <- function(proposal,current,propsigma,...){
+  
+   dmvnorm(proposal, mean = current, sigma = propsigma)
+  
+}
+
+proposalsample <- function(mu,propsigma,...){
+  
+    matrix(rmvnorm(1,mean = mu, sigma = propsigma), nrow = 1 )
+  
+}
+
+
+metropolis_hastings <- function(proposalsample,proposaldensity,targetdensity,X0, iters,...){
+  
+  
+    x <- X0
+    values <- matrix(0, ncol = length(X0), nrow = iters + 1)
+    values[1,] <- X0
+    
+    
+    alpha <- function(x, y, proposaldensity,targetdensity,...) {
+        numerator <- targetdensity(y,...) + proposaldensity(x, y,...)
+        denominator <- targetdensity(x,...) + proposaldensity(y, x,...)
+        
+        exp(numerator - denominator)
+    }
+
+    for (i in 1:iters) {
+        y <- proposalsample(x,...)
+        u <- runif(1)
+
+        if (u < alpha(x, y,proposaldensity,targetdensity,...)) {
+            x <- y
+        }
+
+        values[i+1,] <- x
+    }
+
+    values
+}
+
+iters <- 5000
+X0 <- rep(0, times = ncol(X))
+
+
+
+l <- list( 
+  proposalsample = proposalsample,
+  proposaldensity = proposaldensity,
+  targetdensity = targetdensity,
+  X0 = matrix(rep(0, times = ncol(X)),nrow=1), 
+  iters = iters, 
+  X = t(X),
+  Y = Y,
+  priormu = rep(0, times = ncol(X)),
+  priorsigma = 100 * solve(t(X) %*% X),
+  propsigma = 0.6 * -solve(hessian) 
+
+  )
+
+
+res <- do.call(metropolis_hastings,l)
+
+colMeans(res)
+
+```
+
+## d 
+
+```{r}
+Xpred <- matrix(c(1,1,1,1,0,0,0,1,0.5),nrow = 1)
+
+predsmaples <- rpois(10000, lambda = exp(Xpred %*% t(res) ))
+
+
+mean(predsmaples == 0)
+
+hist(predsmaples, breaks = 50)
+
+```
+
+

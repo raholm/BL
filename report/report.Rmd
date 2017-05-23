@@ -29,44 +29,34 @@ summary(poiglm)
 ## b)
 
 ```{r}
-
 library(mvtnorm)
 
-logprior <- function(beta, mean, sigma){
-    dmvnorm(beta, mean = mean, sigma = sigma, log = TRUE)
+logprior <- function(beta, mu, sigma){
+    dmvnorm(beta, mean = mu, sigma = sigma, log = TRUE)
 }
 
+## loglikelihood <- function(beta, X, Y){
+##   linear_prediction <- t(X) %*% beta
+##   n <- nrow(X)
 
-logfac <- function(i){
-  sum(log(1:i))
-}
+##   probabilities <- sum(Y) * linear_prediction - n * exp(linear_prediction)
+##   loglike <- sum(probabilities)
 
-# loglikelihood <- function(beta, X, Y){
-#
-#   linear_prediction <- t(X) %*% beta
-#
-#   lf <- sum(sapply(Y, FUN = logfac))
-#
-#   probabilities <- lf + sum(Y) * linear_prediction -
-#     nrow(X) * exp(linear_prediction)
-#
-#   loglike <- sum(probabilities)
-#
-#     ## if (abs(loglike) == Inf)
-#     ##     loglike = -20000
-#
-#     loglike
-# }
+##   ## if (abs(loglike) == Inf)
+##   ##     loglike = -20000
 
-loglikelihood <- function(beta,X,Y){
+##   loglike
+## }
+
+loglikelihood <- function(beta, X, Y) {
   linear_prediction <- t(X) %*% beta
   probs <- dpois(Y , lambda = exp(linear_prediction), log = TRUE)
   sum(probs)
 }
 
 
-logposterior <- function(beta, X, Y, mean, sigma){
-   loglikelihood(beta, X, Y) + logprior(beta, mean, sigma)
+logposterior <- function(beta, X, Y, mu, sigma){
+    loglikelihood(beta, X, Y) + logprior(beta, mu, sigma)
 }
 
 X <- as.matrix(bid[,-1])
@@ -75,11 +65,12 @@ Y <- as.matrix(bid[,1])
 mu <- rep(0, ncol(X))
 sigma <- 100 * solve(t(X) %*% X)
 
-optpost <- optim(par = matrix(rep(0,ncol(X)), ncol = 1),
+optpost <- optim(par = matrix(rep(0, ncol(X)), ncol = 1),
                  fn = logposterior, method = "BFGS", hessian = TRUE,
                  X = t(X), Y = Y,
-                 mean = mu, sigma = sigma,
+                 mu = mu, sigma = sigma,
                  control=list(fnscale=-1))
+optpost$par
 
 hessian <- optpost$hessian
 ```
@@ -92,36 +83,36 @@ t(coef(poiglm))
 ## c)
 
 ```{r}
-targetdensity <- function(theta, priormu, priorsigma, X, Y, ...) {
+targetdensity <- function(theta, prior_mu, prior_sigma, X, Y, ...) {
     likelihood <- dpois(Y, lambda = exp(t(X) %*% t(theta)), log = TRUE)
-    prior <- dmvnorm(theta, mean = priormu, sigma = priorsigma, log=TRUE)
+    prior <- dmvnorm(theta, mean = prior_mu, sigma = prior_sigma, log = TRUE)
     sum(likelihood) + prior
 }
 
-proposaldensity <- function(x, mu, propsigma, ...){
-    dmvnorm(x, mean = mu, sigma = propsigma, log=TRUE)
+proposaldensity <- function(x, mu, prop_sigma, ...){
+    dmvnorm(x, mean = mu, sigma = prop_sigma, log = TRUE)
 }
 
-proposalsample <- function(mu, propsigma, ...){
-    matrix(rmvnorm(1, mean = mu, sigma = propsigma), nrow = 1)
+proposalsampler <- function(mu, prop_sigma, ...){
+    matrix(rmvnorm(1, mean = mu, sigma = prop_sigma), nrow = 1)
 }
 
-metropolis_hastings <- function(proposalsample, proposaldensity, targetdensity, X0, iters, ...){
+metropolis_hastings <- function(prop_sampler, log_prop_func, log_targ_post_func, X0, iters, ...){
     x <- X0
     values <- matrix(0, ncol = length(X0), nrow = iters + 1)
     values[1,] <- X0
 
-    alpha <- function(x, y, proposaldensity, targetdensity, ...) {
-        numerator <- targetdensity(y,...) + proposaldensity(x, y,...)
-        denominator <- targetdensity(x,...) + proposaldensity(y, x,...)
+    alpha <- function(x, y, ...) {
+        numerator <- log_targ_post_func(y, ...) + log_prop_func(x, y, ...)
+        denominator <- log_targ_post_func(x, ...) + log_prop_func(y, x, ...)
         exp(numerator - denominator)
     }
 
     for (i in 1:iters) {
-        y <- proposalsample(x,...)
+        y <- prop_sampler(x, ...)
         u <- runif(1)
 
-        if (u < alpha(x, y, proposaldensity, targetdensity, ...)) {
+        if (u < alpha(x, y, ...)) {
             x <- y
         }
 
@@ -134,20 +125,20 @@ metropolis_hastings <- function(proposalsample, proposaldensity, targetdensity, 
 iters <- 5000
 X0 <- rep(0, times = ncol(X))
 
-l <- list(
-    proposalsample = proposalsample,
-    proposaldensity = proposaldensity,
-    targetdensity = targetdensity,
+params <- list(
+    prop_sampler = proposalsampler,
+    log_prop_func = proposaldensity,
+    log_targ_post_func = targetdensity,
     X0 = matrix(rep(0, times = ncol(X)), nrow = 1),
     iters = iters,
     X = t(X),
     Y = Y,
-    priormu = rep(0, times = ncol(X)),
-    priorsigma = 100 * solve(t(X) %*% X),
-    propsigma = 0.6 * -solve(hessian)
+    prior_mu = rep(0, times = ncol(X)),
+    prior_sigma = 100 * solve(t(X) %*% X),
+    prop_sigma = 0.6 * -solve(hessian)
 )
 
-res <- do.call(metropolis_hastings, l)
+res <- do.call(metropolis_hastings, params)
 
 colMeans(res)
 ```

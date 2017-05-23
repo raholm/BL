@@ -67,14 +67,12 @@ optpost <- optim(par = matrix(rep(0, ncol(X)), ncol = 1),
                  X = t(X), Y = Y,
                  prior_mu= mu, prior_sigma = sigma,
                  control=list(fnscale=-1))
-optpost$par
-
 hessian <- optpost$hessian
 ```
 
 ```{r}
-optpost$par
-t(coef(poiglm))
+as.vector(optpost$par)
+as.vector(coef(poiglm))
 ```
 
 ## c)

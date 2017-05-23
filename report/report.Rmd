@@ -402,14 +402,14 @@ probitbetas <- colMeans(betas)
 ## c)
 
 ```{r}
-logprior <- function(beta, mean, sigma){
-    dmvnorm(beta, mean = mean, sigma = sigma, log = TRUE)
+logprior <- function(beta, mu, sigma){
+    dmvnorm(beta, mean = mu, sigma = sigma, log = TRUE)
 }
 
 loglikelihood <- function(beta, X, Y){
     linear_prediction <- t(X) %*% beta
     P <- pnorm(linear_prediction, mean = 0, sd = 1)
-    probabilities <- Y * log(P) + (1 - Y)*log(1 - P)
+    probabilities <- Y * log(P) + (1 - Y) * log(1 - P)
     loglike <- sum(probabilities)
 
     ## if (abs(loglike) == Inf)
@@ -418,13 +418,13 @@ loglikelihood <- function(beta, X, Y){
     loglike
 }
 
-logposterior <- function(beta, X, Y, mean, sigma){
-   loglikelihood(beta, X, Y) + logprior(beta, mean, sigma)
+logposterior <- function(beta, X, Y, mu, sigma){
+   loglikelihood(beta, X, Y) + logprior(beta, mu, sigma)
 }
 
 tau <- 10
 mu <- rep(0,8)
-sigma <- tau^2 * diag(8)
+sigma <- tau * diag(8)
 
 womenX <- as.matrix(women[,2:ncol(women)])
 womenY <- as.matrix(women[,1])
@@ -432,7 +432,7 @@ womenY <- as.matrix(women[,1])
 quadapprox <- optim(par = matrix(rep(0, 8), ncol = 1),
                  fn = logposterior, method = "BFGS", hessian = TRUE,
                  X = t(womenX), Y = womenY,
-                 mean = mu, sigma = sigma,
+                 mu = mu, sigma = sigma,
                  control=list(fnscale=-1))
 
 mu <- quadapprox$par

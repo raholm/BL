@@ -35,28 +35,25 @@ logprior <- function(beta, mu, sigma){
     dmvnorm(beta, mean = mu, sigma = sigma, log = TRUE)
 }
 
-## loglikelihood <- function(beta, X, Y){
-##   linear_prediction <- t(X) %*% beta
-##   n <- nrow(X)
+loglikelihood <- function(beta, X, Y){
+    linear_prediction <- t(X) %*% beta
+    probabilities <- Y * linear_prediction - exp(linear_prediction)
+    loglike <- sum(probabilities)
 
-##   probabilities <- sum(Y) * linear_prediction - n * exp(linear_prediction)
-##   loglike <- sum(probabilities)
+    ## if (abs(loglike) == Inf)
+    ##     loglike = -20000
 
-##   ## if (abs(loglike) == Inf)
-##   ##     loglike = -20000
-
-##   loglike
-## }
-
-loglikelihood <- function(beta, X, Y) {
-  linear_prediction <- t(X) %*% beta
-  probs <- dpois(Y , lambda = exp(linear_prediction), log = TRUE)
-  sum(probs)
+    loglike
 }
 
+## loglikelihood <- function(beta, X, Y) {
+##   linear_prediction <- t(X) %*% beta
+##   probs <- dpois(Y , lambda = exp(linear_prediction), log = TRUE)
+##   sum(probs)
+## }
 
-logposterior <- function(beta, X, Y, mu, sigma){
-    loglikelihood(beta, X, Y) + logprior(beta, mu, sigma)
+logposterior <- function(beta, X, Y, prior_mu, prior_sigma){
+    loglikelihood(beta, X, Y) + logprior(beta, prior_mu, prior_sigma)
 }
 
 X <- as.matrix(bid[,-1])
@@ -68,7 +65,7 @@ sigma <- 100 * solve(t(X) %*% X)
 optpost <- optim(par = matrix(rep(0, ncol(X)), ncol = 1),
                  fn = logposterior, method = "BFGS", hessian = TRUE,
                  X = t(X), Y = Y,
-                 mu = mu, sigma = sigma,
+                 prior_mu= mu, prior_sigma = sigma,
                  control=list(fnscale=-1))
 optpost$par
 

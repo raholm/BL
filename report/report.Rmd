@@ -16,14 +16,14 @@ knitr::opts_chunk$set(echo = TRUE)
 # Question 1
 
 ```{r}
-bid <- read.table("../data/eBayNumberOfBidderData.dat",header = TRUE)
+bid <- read.table("../data/eBayNumberOfBidderData.dat", header = TRUE)
 ```
 
 ## a)
 
 ```{r}
-poiglm <- glm(nBids ~ . - 1, data = bid, family = poisson(link = "log"))
-summary(poiglm)
+glm_res <- glm(nBids ~ . - 1, data = bid, family = poisson(link = "log"))
+summary(glm_res)
 ```
 
 ## b)
@@ -62,17 +62,15 @@ Y <- as.matrix(bid[,1])
 mu <- rep(0, ncol(X))
 sigma <- 100 * solve(t(X) %*% X)
 
-optpost <- optim(par = matrix(rep(0, ncol(X)), ncol = 1),
+normal_res <- optim(par = matrix(rep(0, ncol(X)), ncol = 1),
                  fn = logposterior, method = "BFGS", hessian = TRUE,
                  X = t(X), Y = Y,
                  prior_mu= mu, prior_sigma = sigma,
                  control=list(fnscale=-1))
-hessian <- optpost$hessian
+hessian <- normal_res$hessian
 ```
 
 ```{r}
-as.vector(optpost$par)
-as.vector(coef(poiglm))
 ```
 
 ## c)
@@ -92,7 +90,8 @@ proposalsampler <- function(mu, prop_sigma, ...){
     matrix(rmvnorm(1, mean = mu, sigma = prop_sigma), nrow = 1)
 }
 
-metropolis_hastings <- function(prop_sampler, log_prop_func, log_targ_post_func, X0, iters, ...){
+metropolis_hastings <- function(prop_sampler, log_prop_func, log_targ_post_func,
+                                X0, iters, ...){
     x <- X0
     values <- matrix(0, ncol = length(X0), nrow = iters + 1)
     values[1,] <- X0
@@ -133,17 +132,20 @@ params <- list(
     prop_sigma = 0.6 * -solve(hessian)
 )
 
-res <- do.call(metropolis_hastings, params)
-
-colMeans(res)
+metro_res <- do.call(metropolis_hastings, params)
+```
+```{r}
+as.vector(normal_res$par)
+as.vector(coef(glm_res))
+as.vector(colMeans(metro_res))
 ```
 
 ## d
 
 ```{r}
 Xpred <- matrix(c(1, 1, 1, 1, 0, 0, 0, 1, 0.5), nrow = 1)
-predsmaples <- rpois(10000, lambda = exp(Xpred %*% t(res)))
+predsamples <- rpois(10000, lambda = exp(Xpred %*% t(metro_res)))
 
-mean(predsmaples == 0)
-hist(predsmaples, breaks = 50)
+mean(predsamples == 0)
+hist(predsamples, breaks = 50)
 ```

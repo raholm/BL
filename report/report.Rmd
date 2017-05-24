@@ -116,7 +116,7 @@ metropolis_hastings <- function(prop_sampler, log_prop_func, log_targ_post_func,
     values
 }
 
-iters <- 5000
+iters <- 10000
 X0 <- rep(0, times = ncol(X))
 
 params <- list(
@@ -134,11 +134,82 @@ params <- list(
 
 metro_res <- do.call(metropolis_hastings, params)
 ```
+
 ```{r}
 as.vector(normal_res$par)
 as.vector(coef(glm_res))
 as.vector(colMeans(metro_res))
 ```
+
+
+```{r}
+
+old <- par(mfrow =c(3,3))
+
+for (i in 1:9){
+  
+  plot(x = 1:nrow(metro_res), y = metro_res[,i], type = "l")
+  
+}
+
+par(old)
+
+```
+
+The parameters seem to converge but some of them might have some small autocorrelation left in them. Plots with cummulative means will be assesed.
+
+
+
+```{r}
+
+
+metro_cummean <- apply(metro_res, MARGIN = 2, FUN = function(x) cumsum(x) / (1:length(x)))
+
+old <- par(mfrow =c(3,3))
+
+for (i in 1:9){
+  
+  plot(x = 1:nrow(metro_cummean), y = metro_cummean[,i], type = "l")
+  
+}
+
+par(old)
+```
+
+The cummulative means seem to be quite stable although compleatly converged. More itterations are needed to get a more stable result.
+
+
+
+```{r}
+
+old <- par(mfrow =c(3,3))
+
+for (i in 1:9){
+  
+  hist(metro_res[,i], freq = FALSE, breaks = 50, main = expression(beta[paste(i)]),
+       xlab = " ")
+  lines(density(metro_res[,i]), col = "blue")
+  
+}
+
+par(old)
+
+old <- par(mfrow =c(3,3))
+
+
+for (i in 1:9){
+  
+  hist(exp(metro_res[,i]), freq = FALSE, breaks = 50, main = expression(exp(beta[paste(i)])),
+       xlab = " ")
+  lines(density(exp(metro_res[,i])), col = "blue")
+  
+}
+
+par(old)
+
+```
+
+
 
 ## d
 
@@ -146,6 +217,9 @@ as.vector(colMeans(metro_res))
 Xpred <- matrix(c(1, 1, 1, 1, 0, 0, 0, 1, 0.5), nrow = 1)
 predsamples <- rpois(10000, lambda = exp(Xpred %*% t(metro_res)))
 
-mean(predsamples == 0)
 hist(predsamples, breaks = 50)
+```
+
+```{r}
+paste("The probability that there are no bidders",mean(predsamples == 0))
 ```

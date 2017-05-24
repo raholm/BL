@@ -82,15 +82,15 @@ targetdensity <- function(theta, prior_mu, prior_sigma, X, Y, ...) {
     sum(likelihood) + prior
 }
 
-proposaldensity <- function(x, mu, prop_sigma, ...){
-    dmvnorm(x, mean = mu, sigma = prop_sigma, log = TRUE)
+proposaldensity <- function(theta, mu, prop_sigma, ...){
+    dmvnorm(theta, mean = mu, sigma = prop_sigma, log = TRUE)
 }
 
 proposalsampler <- function(mu, prop_sigma, ...){
     matrix(rmvnorm(1, mean = mu, sigma = prop_sigma), nrow = 1)
 }
 
-metropolis_hastings <- function(prop_sampler, log_prop_func, log_targ_post_func,
+metropolis_hastings <- function(log_targ_post_func, log_prop_func, prop_sampler,
                                 X0, iters, ...){
     x <- X0
     values <- matrix(0, ncol = length(X0), nrow = iters + 1)
@@ -120,9 +120,9 @@ iters <- 10000
 X0 <- rep(0, times = ncol(X))
 
 params <- list(
-    prop_sampler = proposalsampler,
-    log_prop_func = proposaldensity,
     log_targ_post_func = targetdensity,
+    log_prop_func = proposaldensity,
+    prop_sampler = proposalsampler,
     X0 = matrix(rep(0, times = ncol(X)), nrow = 1),
     iters = iters,
     X = t(X),

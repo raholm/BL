@@ -359,7 +359,7 @@ betahat <- function(XX, X, y){
 }
 
 mun <- function(XX, betahat, mu0, omega0){
- solve( XX + omega0 ) %*% (XX %*% betahat - omega0 %*% mu0)
+ solve( XX + omega0 ) %*% (XX %*% betahat + omega0 %*% mu0)
 }
 
 probitgibbs <- function(X, Y, mu0, omega0, beta0, iter){
@@ -376,11 +376,11 @@ probitgibbs <- function(X, Y, mu0, omega0, beta0, iter){
 
     xB <- X %*% beta
 
-    u[y0] <- rtnorm(n = y0n,mean = xB[y0], sd = 1, lower = -Inf, upper = 0)
-    u[!y0]<- rtnorm(n = y1n,mean = xB[!y0], sd = 1, lower = 0, upper = Inf)
+    u[y0] <- rtnorm(n = y0n, mean = xB[y0], sd = 1, lower = -Inf, upper = 0)
+    u[!y0] <- rtnorm(n = y1n, mean = xB[!y0], sd = 1, lower = 0, upper = Inf)
 
     baehat <- betahat(XX,X,u)
-    myn <- mun(XX,baehat,mu0,omega0)
+    myn <- mun(XX, baehat, mu0, omega0)
 
     beta <- as.vector(rmvnorm(1, mean = myn, sigma = 1 * solve(omegan) ))
     samples[i,] <- beta
@@ -395,7 +395,7 @@ probitgibbs <- function(X, Y, mu0, omega0, beta0, iter){
 betas <- probitgibbs(X = women[,-1], Y = women[,1],
                      mu0 = rep(0, times = ncol(women[,-1])),
                      omega0 = 100* diag(ncol(women[,-1])),
-                     beta = rep(0, times = ncol(women[,-1])), iter = 10000)
+                     beta = rep(0, times = ncol(women[,-1])), iter = 1000)
 probitbetas <- colMeans(betas)
 ```
 

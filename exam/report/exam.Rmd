@@ -981,8 +981,8 @@ bid <- read.table("../data/eBayNumberOfBidderData.dat",header = TRUE)
 ## a)
 
 ```{r}
-poiglm <- glm(nBids ~ . - 1, data = bid, family = poisson(link = "log"))
-summary(poiglm)
+glm_res <- glm(nBids ~ . - 1, data = bid, family = poisson(link = "log"))
+summary(glm_res)
 ```
 
 ## b)
@@ -1021,17 +1021,12 @@ Y <- as.matrix(bid[,1])
 mu <- rep(0, ncol(X))
 sigma <- 100 * solve(t(X) %*% X)
 
-optpost <- optim(par = matrix(rep(0, ncol(X)), ncol = 1),
+normal_res <- optim(par = matrix(rep(0, ncol(X)), ncol = 1),
                  fn = logposterior, method = "BFGS", hessian = TRUE,
                  X = t(X), Y = Y,
                  prior_mu= mu, prior_sigma = sigma,
                  control=list(fnscale=-1))
-hessian <- optpost$hessian
-```
-
-```{r}
-as.vector(optpost$par)
-as.vector(coef(poiglm))
+hessian <- normal_res$hessian
 ```
 
 ## c)
@@ -1043,15 +1038,16 @@ targetdensity <- function(theta, prior_mu, prior_sigma, X, Y, ...) {
     sum(likelihood) + prior
 }
 
-proposaldensity <- function(x, mu, prop_sigma, ...){
-    dmvnorm(x, mean = mu, sigma = prop_sigma, log = TRUE)
+proposaldensity <- function(theta, mu, prop_sigma, ...){
+    dmvnorm(theta, mean = mu, sigma = prop_sigma, log = TRUE)
 }
 
 proposalsampler <- function(mu, prop_sigma, ...){
     matrix(rmvnorm(1, mean = mu, sigma = prop_sigma), nrow = 1)
 }
 
-metropolis_hastings <- function(prop_sampler, log_prop_func, log_targ_post_func, X0, iters, ...){
+metropolis_hastings <- function(log_targ_post_func, log_prop_func, prop_sampler,
+                                X0, iters, ...){
     x <- X0
     values <- matrix(0, ncol = length(X0), nrow = iters + 1)
     values[1,] <- X0
@@ -1076,13 +1072,13 @@ metropolis_hastings <- function(prop_sampler, log_prop_func, log_targ_post_func,
     values
 }
 
-iters <- 5000
+iters <- 10000
 X0 <- rep(0, times = ncol(X))
 
 params <- list(
-    prop_sampler = proposalsampler,
-    log_prop_func = proposaldensity,
     log_targ_post_func = targetdensity,
+    log_prop_func = proposaldensity,
+    prop_sampler = proposalsampler,
     X0 = matrix(rep(0, times = ncol(X)), nrow = 1),
     iters = iters,
     X = t(X),
@@ -1092,17 +1088,79 @@ params <- list(
     prop_sigma = 0.6 * -solve(hessian)
 )
 
-res <- do.call(metropolis_hastings, params)
+metro_res <- do.call(metropolis_hastings, params)
+```
 
-colMeans(res)
+```{r, echo=FALSE}
+library(knitr)
+
+params <- matrix(c(coef(glm_res), normal_res$par, colMeans(metro_res)), nrow=3, byrow=TRUE)
+colnames(params) <- c("Beta0", "Beta1", "Beta2", "Beta3", "Beta4", "Beta5", "Beta6", "Beta7", "Beta8")
+rownames(params) <- c("glm", "normal", "metropolis")
+kable(params, format="latex", digits=3)
+```
+
+```{r, echo=FALSE, fig.width=8, fig.height=8}
+old <- par(mfrow =c(3,3))
+
+for (i in 1:9){
+    plot(x = 1:nrow(metro_res), y = metro_res[,i], type = "l",
+         xlab="iteration", ylab=bquote(beta[.(i-1)]))
+}
+
+par(old)
+```
+
+The parameters seem to converge but some of them might have some small autocorrelation left in them. Plots with cumulative means will be assessed.
+
+```{r, echo=FALSE, fig.width=8, fig.height=8}
+metro_cummean <- apply(metro_res, MARGIN = 2, FUN = function(x) cumsum(x) / (1:length(x)))
+
+old <- par(mfrow =c(3,3))
+
+for (i in 1:9){
+    plot(x = 1:nrow(metro_cummean), y = metro_cummean[,i], type = "l",
+         xlab="iteration", ylab=bquote(beta[.(i-1)]))
+}
+
+par(old)
+```
+
+The cumulative means seem to be quite stable although not completely converged. More iterations are needed to get a more stable result.
+
+```{r, echo=FALSE, fig.width=8, fig.height=10}
+old <- par(mfrow =c(3,3))
+
+for (i in 1:9){
+    hist(metro_res[,i], freq = FALSE, breaks = 50,
+         main =bquote(beta[.(i-1)]), xlab="", axes=TRUE)
+  lines(density(metro_res[,i]), col = "blue")
+}
+
+par(old)
+```
+
+```{r, echo=FALSE, fig.width=8, fig.height=10}
+old <- par(mfrow =c(3,3))
+
+for (i in 1:9){
+    hist(exp(metro_res[,i]), freq = FALSE, breaks = 50,
+         main = bquote(exp(beta[.(i-1)])), xlab="")
+  lines(density(exp(metro_res[,i])), col = "blue")
+}
+
+par(old)
 ```
 
 ## d
 
 ```{r}
 Xpred <- matrix(c(1, 1, 1, 1, 0, 0, 0, 1, 0.5), nrow = 1)
-predsmaples <- rpois(10000, lambda = exp(Xpred %*% t(res)))
+predsamples <- rpois(10000, lambda = exp(Xpred %*% t(metro_res)))
 
-mean(predsmaples == 0)
-hist(predsmaples, breaks = 50)
+hist(predsamples, breaks = 50, main="Predictive Distribution", xlab="Number of bids")
+```
+
+```{r}
+paste("The probability that there are no bidders", mean(predsamples == 0))
 ```

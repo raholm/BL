@@ -1,2 +1,1 @@
 # BL
-Bayesian Learning
